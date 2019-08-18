@@ -1,7 +1,7 @@
 ﻿using emulator6502;
 using System;
 
-namespace Runner
+namespace console
 {
     public class PPU : Addressable
     {
@@ -25,8 +25,6 @@ namespace Runner
             
             //Start vector for cpu (first absolute address of rom)
             bus.Write(0xFFFC, 0x8000);
-
-            var codes = new Opcodes();
 
             //this color should draw 2x4 color "pixels" into the ppu
             rom.LoadBinaryProgram(
