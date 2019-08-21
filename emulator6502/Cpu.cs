@@ -48,25 +48,17 @@
             while (State == CpuState.Running)
             {
                 ushort prevPC = PC;
+                
                 var entry = opcodes[Bus.Read(PC++)];
                 if (entry.Enum == OpcodeEnum.BRK) break;
 
                 ushort parameter = 0;
-
-                if (entry.Mode == BindingMode.Absolute || entry.Mode == BindingMode.AbsoluteX || entry.Mode == BindingMode.AbsoluteY)
-                {
-                    parameter = ReadWord(PC);
-                    PC += 2;
-                }
-                else if (entry.Mode != BindingMode.Implied)
-                {
-                    parameter = Bus.Read(PC++);
-                }
                 
-                if(!InnerExecute(entry, parameter))
-                {
-                    PC = prevPC;
-                }
+                if (entry.Length == 2)  parameter = ReadWord(PC);
+                else if (entry.Length == 1)  parameter = Bus.Read(PC);
+                PC += entry.Length;
+                
+                if(!InnerExecute(entry, parameter)) PC = prevPC;
             }
         }        
 

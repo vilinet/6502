@@ -8,12 +8,12 @@ namespace console
         public PPU(ushort size) : base(size) { }
     }
 
-    class Program
+    static class Program
     {
         static void Main(string[] args)
         {
-            var ram = new Ram(0x200);
-            var ppu = new PPU(0xFF);
+            var ram = new Ram(0x0200);
+            var ppu = new PPU(0x00FF);
             var rom = new Rom(0x8000);
 
             var bus = new Bus();
@@ -25,31 +25,42 @@ namespace console
             
             //Start vector for cpu (first absolute address of rom)
             bus.Write(0xFFFC, 0x8000);
-
-            //this color should draw 2x4 color "pixels" into the ppu
-            rom.LoadBinaryProgram(
-                "a9 00 a2 00 9d 00 02 18 69 01 e8 9d 00 02 18 69"+
-                "01 e8 9d 00 02 18 69 01 e8 9d 00 02 48 8a 18 69"+
-                "20 aa 68 18 69 01 9d 00 02 18 69 01 ca 9d 00 02"+
-                "18 69 01 ca 9d 00 02 18 69 01 ca 9d 00 02");
-
-            cpu.BeforeOperationExecuted += Cpu_OnExecutingOperation;
-            cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
-
-            cpu.Run();
-
-            int width = 32;
-            var colors = new ConsoleColor[] { ConsoleColor.Black, ConsoleColor.White, ConsoleColor.Red, ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Blue, ConsoleColor.Yellow, ConsoleColor.DarkYellow };
-
-            for (int j = 0; j < 2; j++)
+            var code = "a9 00 a2 00 9d 00 02 18 69 01 e8 9d 00 02 18 69" +
+                       "01 e8 9d 00 02 18 69 01 e8 9d 00 02 48 8a 18 69" +
+                       "20 aa 68 18 69 01 9d 00 02 18 69 01 ca 9d 00 02" +
+                       "18 69 01 ca 9d 00 02 18 69 01 ca 9d 00 02";
+            
+            Decompiler decompiler = new Decompiler();
+            foreach (var line in decompiler.Decompile(code))
             {
-                for (int i = 0; i < 8; i++)
+                Console.WriteLine(line);
+            }
+            return;
+            //this color should draw 2x4 color "pixels" into the ppu
+            rom.LoadBinaryProgram(code);
+            
+            cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+            cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
+            cpu.Execute(OpcodeEnum.LDA, BindingMode.Immediate, 0x0F );
+            cpu.Execute(OpcodeEnum.AND, BindingMode.Immediate, 0x0F );
+            
+            cpu.Run();
+            
+            var width = 32;
+            var colors = new[] { ConsoleColor.Black, ConsoleColor.White, ConsoleColor.Red, ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Blue, ConsoleColor.Yellow, ConsoleColor.DarkYellow };
+            
+            for (var j = 0; j < 2; j++)
+            {
+                for (var i = 0; i < 4; i++)
                 {
+                        Console.BackgroundColor = ConsoleColor.Black;
                         Console.ForegroundColor = colors[ppu[j * width + i]];
                         Console.Write("M");
-                }
+                } 
                 Console.WriteLine();
             }
+
+            Console.ReadLine();
         }
 
         private static void Cpu_AfterOperationExecuted(Cpu cpu, OpcodeEventArgs e)
@@ -58,7 +69,7 @@ namespace console
             Console.WriteLine();
         }
 
-        private static void Cpu_OnExecutingOperation(object sender, OpcodeEventArgs e)
+        private static void Cpu_BeforeOperationExecuted(object sender, OpcodeEventArgs e)
         {
             Console.WriteLine(e.Opcode.ToString() + " " + ((e.Opcode.Mode != BindingMode.Implied) ? e.Parameter.ToString("X4") : "")); ;
         }
