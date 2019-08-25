@@ -2,6 +2,7 @@
 {
     public enum CpuState
     {
-        Reset, Running, Paused
+        Reset, Running, Paused,
+        Break
     }
 }

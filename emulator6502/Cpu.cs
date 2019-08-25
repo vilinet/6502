@@ -16,7 +16,18 @@
         public byte X { get;  internal set; }
         public byte Y { get; internal set; }
 
-        public uint Cycles { get; private set; }
+        public uint Cycles { get; internal set; }
+
+        public void Irq()
+        {
+            operations.Irq();
+        }
+        
+        public void Nmi()
+        {
+            operations.Nmi();
+        }
+        
 
         public event OpCodeEventHandler BeforeOperationExecuted;
         public event OpCodeEventHandler AfterOperationExecuted;
@@ -26,41 +37,45 @@
             opcodes = new Opcodes();
             operations = new CpuOperations(this);
             Bus = bus;
-            Reset();
         }
 
         public void Reset()
         {
-            State = CpuState.Reset;
-            Cycles = 0;
+            PC = ReadWord(0XFFFC); 
+            State = CpuState.Running;
+            Cycles = 8;
             Status.Reset();
+        }
+
+        public bool Clock()
+        {
+            ushort prevPC = PC;
+                
+            var entry = opcodes[Bus.Read(PC++)];
+            if (entry.Enum == OpcodeEnum.BRK) return false;
+
+            ushort parameter = 0;
+                
+            if (entry.Length == 2)  parameter = ReadWord(PC);
+            else if (entry.Length == 1)  parameter = Bus.Read(PC);
+            PC += entry.Length;
+
+            if (!InnerExecute(entry, parameter, prevPC))
+            {
+                PC = prevPC;
+            }
+
+            return true;
         }
 
         public void Run()
         {
-            if (State != CpuState.Paused)
+            while (State == CpuState.Running) 
             {
-                PC = ReadWord(0XFFFC);
-            }
-
-            State = CpuState.Running;
-
-            while (State == CpuState.Running)
-            {
-                ushort prevPC = PC;
-                
-                var entry = opcodes[Bus.Read(PC++)];
-                if (entry.Enum == OpcodeEnum.BRK) break;
-
-                ushort parameter = 0;
-                
-                if (entry.Length == 2)  parameter = ReadWord(PC);
-                else if (entry.Length == 1)  parameter = Bus.Read(PC);
-                PC += entry.Length;
-
-                if (!InnerExecute(entry, parameter, prevPC))
+                if (!Clock())
                 {
-                    PC = prevPC;
+                    State = CpuState.Break;
+                    break;
                 }
             }
         }        

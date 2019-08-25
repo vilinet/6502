@@ -145,6 +145,7 @@ namespace emulator6502
         }
 
         #endregion
+        
 
         private void AdcCore(byte value)
         {
@@ -566,6 +567,29 @@ namespace emulator6502
         {
             _cpu.A = _cpu.Y;
             SetNegativeAndZeroFlag(_cpu.A);
+        }
+
+        internal void Irq()
+        {
+            if (!_cpu.Status.InterruptDisable)
+            {
+                PushPc(_cpu.PC);
+                _cpu.Status.BreakInterrupt = false;
+                _cpu.Status.InterruptDisable = true;
+                Push(_cpu.Status.Value);
+                _cpu.PC = ReadWord(0xFFFE);
+                _cpu.Cycles += 7;
+            }
+        }
+        
+        internal void Nmi()
+        {
+                PushPc(_cpu.PC);
+                _cpu.Status.BreakInterrupt = false;
+                _cpu.Status.InterruptDisable = true;
+                Push(_cpu.Status.Value);
+                _cpu.PC = ReadWord(0xFFFA);
+                _cpu.Cycles += 7;
         }
     }
 }

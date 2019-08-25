@@ -38,6 +38,12 @@ namespace console
             cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
             //cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
             
+            cpu.Reset();
+            
+            cpu.Clock();
+            cpu.Clock();
+            cpu.Clock();
+            cpu.Clock();
             cpu.Run();
         }
 
