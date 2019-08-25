@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace emulator6502
@@ -10,20 +12,38 @@ namespace emulator6502
         
         public List<FullOpcode> Decompile(Stream stream, int start = 0)
         {
+            
             var result = new List<FullOpcode>();
 
             if (stream.CanSeek) stream.Seek(start, SeekOrigin.Begin);
             while (stream.Position < stream.Length)
             {
                 var pos = stream.Position;
-                
-                var opcode = _opcodes[(byte) stream.ReadByte()];
+                Opcode opcode;
+                var code = (byte)stream.ReadByte();
                 ushort parameter = 0;
-                if (opcode.Length == 1)
-                    parameter = (ushort) stream.ReadByte();
-                else if (opcode.Length == 2)
-                    parameter = (ushort) (stream.ReadByte() + stream.ReadByte() << 8);
+                byte[] byteCode = new[] { code };
                 
+                if (!_opcodes.ContainsKey(code))
+                {
+                    opcode = new Opcode(code, OpcodeEnum.DB, BindingMode.Implied, 0);
+                    parameter = code;
+                }
+                else opcode = _opcodes[code];
+
+                if (opcode.Length == 1)
+                {
+                    parameter = (ushort) stream.ReadByte();
+                    byteCode = new byte[]{code , (byte)parameter};
+                } 
+                else if (opcode.Length == 2)
+                {
+                    var f = stream.ReadByte();
+                    var s = stream.ReadByte();
+                    byteCode = new byte[]{code , (byte)f, (byte)s};
+                    parameter = (ushort)(f +( s << 8));
+                }
+                    
                 result.Add( new FullOpcode(opcode, parameter, (ushort)pos));
             }
 

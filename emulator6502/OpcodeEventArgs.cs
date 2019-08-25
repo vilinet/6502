@@ -4,14 +4,12 @@ namespace emulator6502
 {
     public class OpcodeEventArgs : EventArgs
     {
-        public Opcode Opcode { get; private set; }
-        public ushort Parameter { get; private set; }
+        public FullOpcode Full { get; }
         public bool RequestPauseExecution { get; set; }
 
-        public OpcodeEventArgs(Opcode opcode, ushort parameter)
+        public OpcodeEventArgs(FullOpcode opcode)
         {
-            Opcode = opcode;
-            Parameter = parameter;
+            Full = opcode;
         }
     }
 }

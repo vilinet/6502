@@ -56,6 +56,9 @@
         BMI,
         BPL,
         BVS,
-        BVC
+        BVC,
+        //Non used in assembler, every other stuff
+        DB,
+        LSR
     }
 }

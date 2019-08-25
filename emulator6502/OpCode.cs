@@ -16,7 +16,7 @@
                 {
                     if (Mode == BindingMode.Implied) _length = 0;
                     else if (Mode == BindingMode.Absolute || Mode == BindingMode.AbsoluteX ||
-                             Mode == BindingMode.AbsoluteY)
+                             Mode == BindingMode.AbsoluteY || Mode == BindingMode.Indirect)
                     {
                         _length = 2;
                     }

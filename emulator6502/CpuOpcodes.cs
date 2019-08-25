@@ -13,6 +13,7 @@ namespace emulator6502
             this[OpcodeEnum.ADC] = Adc;
             this[OpcodeEnum.AND] = And;
             this[OpcodeEnum.ASL] = Asl;
+            this[OpcodeEnum.LSR] = Lsr;
             this[OpcodeEnum.BCC] = Bcc;
             this[OpcodeEnum.BCS] = Bcs;
             this[OpcodeEnum.BEQ] = Beq;
@@ -152,7 +153,7 @@ namespace emulator6502
 
             _cpu.Status.Carry = false;
 
-            if (_cpu.Status.DecimalMode)
+           /* if (_cpu.Status.DecimalMode)
             {
                 if (((_cpu.A ^ value ^ result) & 0x10) == 0x10)
                 {
@@ -166,7 +167,7 @@ namespace emulator6502
                 {
                     _cpu.Status.Carry = true;
                 }
-            }
+            }*/
 
             _cpu.Status.Overflow = ((_cpu.A ^ result) & (value ^ result) & 0x80) == 0x80;
             _cpu.Status.Carry |= hasCarry;
@@ -309,14 +310,15 @@ namespace emulator6502
 
         private void PopPc()
         {
-            _cpu.PC = (ushort)(Pop() + (Pop() << 8));
+            byte f = Pop();
+            byte s = Pop();
+            ushort VAL = (ushort)((f<<8) + s);
+            _cpu.PC = VAL;
         }
 
         private void Jmp(ushort param, BindingMode mode)
         {
-            var addr = GetAddress(param, mode);
-            PushPc((ushort)(_cpu.PC + 1));
-            _cpu.PC = addr;
+            _cpu.PC = GetAddress(param, mode);
         }
 
         private void Inc(ushort param, BindingMode mode)
@@ -389,7 +391,8 @@ namespace emulator6502
 
         private void Php(ushort param, BindingMode mode)
         {
-            Push(_cpu.Status.Value);
+            Push((byte)(_cpu.Status.Value | (byte)16));
+            _cpu.Status.BreakInterrupt = false;
         }
 
         private void Plp(ushort param, BindingMode mode)
@@ -400,7 +403,8 @@ namespace emulator6502
             _cpu.Status.Zero = (val & 0b00000010) > 0;
             _cpu.Status.InterruptDisable = (val & 0b00000100) > 0;
             _cpu.Status.DecimalMode = (val & 0b00001000) > 0;
-            _cpu.Status.BreakInterrupt = (val & 0b000010000) > 0;
+            _cpu.Status.BreakInterrupt =  (val & 0b00010000) > 0;
+            
             _cpu.Status.Overflow = (val & 0b01000000) > 0;
             _cpu.Status.Negative = (val & 0b10000000) > 0;
         }
@@ -489,8 +493,8 @@ namespace emulator6502
 
         private void Jsr(ushort param, BindingMode mode)
         {
-            Plp(0, BindingMode.Implied);
-            PopPc();
+            PushPc((ushort)(_cpu.PC));
+            _cpu.PC = param;
         }
 
 

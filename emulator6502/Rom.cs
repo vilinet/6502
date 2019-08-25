@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Text.RegularExpressions;
 
 namespace emulator6502
 {
@@ -8,10 +9,11 @@ namespace emulator6502
         {
         }
 
-        public void LoadBinaryProgram(byte[] data)
+        public void LoadBinaryProgram(byte[] data, ushort address)
         {
             for (ushort i = 0; i < data.Length; i++)
-                Write(i, data[i]);
+                Write(address++, data[i]);
+            Console.WriteLine("Max address:" + (address-1).ToString());
         }
 
         /// <summary>

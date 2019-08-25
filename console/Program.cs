@@ -1,5 +1,7 @@
 ﻿using emulator6502;
 using System;
+using System.IO;
+using System.Linq;
 
 namespace console
 {
@@ -7,71 +9,50 @@ namespace console
     {
         public PPU(ushort size) : base(size) { }
     }
-
+    
     static class Program
     {
         static void Main(string[] args)
         {
-            var ram = new Ram(0x0200);
-            var ppu = new PPU(0x00FF);
-            var rom = new Rom(0x8000);
+            var ram = new Ram(0x0800);
+            var rom = new Rom(0x4001);
 
             var bus = new Bus();
             var cpu = new Cpu(bus);
-
-            bus.AddMap(0,      0x200, ram);
-            bus.AddMap(0x200,  0x2FF,  ppu);
-            bus.AddMap(0x8000, 0xFFFF, rom);
+            var de = new Decompiler();
+            if(File.Exists("c:/tmp/my.log")) File.Delete("c:/tmp/my.log");
             
+            //var list = de.Decompile(new MemoryStream(File.ReadAllBytes(@"C:\code\6502\nestest.nes")), 0x10);
+            //File.WriteAllLines("c:/tmp/out.asm", list.Select(x=> x.ToString()).ToArray());
+            rom.LoadBinaryProgram( File.ReadAllBytes( @"C:\code\6502\nestest.nes")[0x0010 .. 0x4000], 0x0);
+            bus.AddMap(0x0, 0x0800, ram);
+            bus.AddMap(0x8000, 0x8000+0x4000-1, rom);
+            bus.AddMap(0xC000, (ushort)(0xC000+0x4000-1), rom);
+            cpu.Execute(OpcodeEnum.PHP, BindingMode.Implied);
+            cpu.Execute(OpcodeEnum.PHP, BindingMode.Implied);
+            cpu.Execute(OpcodeEnum.PHP, BindingMode.Implied);
+            cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);
             //Start vector for cpu (first absolute address of rom)
-            bus.Write(0xFFFC, 0x8000);
-            var code = "a9 00 a2 00 9d 00 02 18 69 01 e8 9d 00 02 18 69" +
-                       "01 e8 9d 00 02 18 69 01 e8 9d 00 02 48 8a 18 69" +
-                       "20 aa 68 18 69 01 9d 00 02 18 69 01 ca 9d 00 02" +
-                       "18 69 01 ca 9d 00 02 18 69 01 ca 9d 00 02";
-            
-            Decompiler decompiler = new Decompiler();
-            foreach (var line in decompiler.Decompile(code))
-            {
-                Console.WriteLine(line);
-            }
-            return;
-            //this color should draw 2x4 color "pixels" into the ppu
-            rom.LoadBinaryProgram(code);
-            
+            bus.Write(0xFFFC, 0xC000);
+
             cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
-            cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
-            cpu.Execute(OpcodeEnum.LDA, BindingMode.Immediate, 0x0F );
-            cpu.Execute(OpcodeEnum.AND, BindingMode.Immediate, 0x0F );
+            //cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
             
             cpu.Run();
-            
-            var width = 32;
-            var colors = new[] { ConsoleColor.Black, ConsoleColor.White, ConsoleColor.Red, ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Blue, ConsoleColor.Yellow, ConsoleColor.DarkYellow };
-            
-            for (var j = 0; j < 2; j++)
-            {
-                for (var i = 0; i < 4; i++)
-                {
-                        Console.BackgroundColor = ConsoleColor.Black;
-                        Console.ForegroundColor = colors[ppu[j * width + i]];
-                        Console.Write("M");
-                } 
-                Console.WriteLine();
-            }
-
-            Console.ReadLine();
         }
 
         private static void Cpu_AfterOperationExecuted(Cpu cpu, OpcodeEventArgs e)
         {
-            Console.WriteLine($"A: {cpu.A:X2}, X: {cpu.X:X2}, Y: {cpu.Y:X2}, SP:{cpu.SP:X2}");
-            Console.WriteLine();
+            
         }
 
-        private static void Cpu_BeforeOperationExecuted(object sender, OpcodeEventArgs e)
+        private static void Cpu_BeforeOperationExecuted(Cpu cpu, OpcodeEventArgs e)
         {
-            Console.WriteLine(e.Opcode.ToString() + " " + ((e.Opcode.Mode != BindingMode.Implied) ? e.Parameter.ToString("X4") : "")); ;
+            
+            var bb = e.Full.ToString().PadRight(48);
+            var str = ( $"{bb} A:{cpu.A:X2} X:{cpu.X:X2} Y:{cpu.Y:X2}  P:{cpu.Status.Value:X2} SP:{cpu.SP:X2} ");
+            Console.WriteLine(str);
+            File.AppendAllText("c:/tmp/my.log", str+"\n");
         }
     }
 }

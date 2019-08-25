@@ -18,6 +18,7 @@
         /// <summary>
         /// Indirect Y
         /// </summary>
-        IndirectIndexed
+        IndirectIndexed,
+        Relative
     }
 }

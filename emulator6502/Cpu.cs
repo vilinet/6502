@@ -57,33 +57,36 @@
                 if (entry.Length == 2)  parameter = ReadWord(PC);
                 else if (entry.Length == 1)  parameter = Bus.Read(PC);
                 PC += entry.Length;
-                
-                if(!InnerExecute(entry, parameter)) PC = prevPC;
+
+                if (!InnerExecute(entry, parameter, prevPC))
+                {
+                    PC = prevPC;
+                }
             }
         }        
 
         public void Execute(OpcodeEnum opcodeEnum, BindingMode mode, ushort parameter = 0)
         {
-            InnerExecute(opcodes.Get(opcodeEnum, mode), parameter);
+            InnerExecute(opcodes.Get(opcodeEnum, mode), parameter, 0);
         }
 
         public void Execute(OpcodeEnum opcodeEnum, ushort parameter = 0)
         {
-            InnerExecute(opcodes.Get(opcodeEnum), parameter);
+            InnerExecute(opcodes.Get(opcodeEnum), parameter, 0);
         }
 
         public void Execute(Opcode opcode, ushort parameter = 0)
         {
-            InnerExecute(opcode, parameter);
+            InnerExecute(opcode, parameter, 0);
         }
 
-        private bool InnerExecute(Opcode opcode, ushort param)
+        private bool InnerExecute(Opcode opcode, ushort param, ushort pos)
         {
             OpcodeEventArgs arg = null;
 
             if (BeforeOperationExecuted!=null)
             {
-                arg = new OpcodeEventArgs(opcode, param);
+                arg = new OpcodeEventArgs(new FullOpcode(opcode, param, pos ));
                 BeforeOperationExecuted?.Invoke(this, arg);
                 
                 if (arg.RequestPauseExecution)
@@ -99,7 +102,7 @@
             
             if(AfterOperationExecuted != null)
             {
-                if (arg == null) arg = new OpcodeEventArgs(opcode, param);
+                if (arg == null) arg = new OpcodeEventArgs(new FullOpcode(opcode, param, pos ));
                 else arg.RequestPauseExecution = false;
 
                 AfterOperationExecuted?.Invoke(this, arg);

@@ -7,7 +7,7 @@
         public bool InterruptDisable { get; internal  set; }
         public bool DecimalMode { get; internal  set; }
         public bool BreakInterrupt { get; internal  set; }
-        public bool NonUsed { get; } = true;
+        public bool NonUsed { get; set; } = true;
         public bool Overflow { get; internal  set; }
         public bool Negative { get; internal set; }
 
