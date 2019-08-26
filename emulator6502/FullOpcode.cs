@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace emulator6502
@@ -15,17 +16,19 @@ namespace emulator6502
             Parameter = parameter;
             Position = position;
         }
-
-        public override string ToString()
+        private static List<OpcodeEnum> enumsToWriteValue = new List<OpcodeEnum> { OpcodeEnum.BIT, OpcodeEnum.LDA, OpcodeEnum.STA,  OpcodeEnum.STX,  OpcodeEnum.STY, OpcodeEnum.LDY, OpcodeEnum.LDX  };
+        public string ToString(ushort outsideParameter)
         {
             string bytes = "";
+            string valChange = "";
+
             if (Opcode.Enum == OpcodeEnum.DB)
             {
                 bytes = Parameter.ToString("X2");
             }
             else
             {
-                bytes = Opcode.Code.ToString("X");
+                bytes = Opcode.Code.ToString("X2");
                 if (Opcode.Length == 1)
                 {
                     bytes += " " +  Parameter.ToString("X2");
@@ -35,10 +38,15 @@ namespace emulator6502
                     bytes += " " +  (Parameter & 0xFF).ToString("X2") + " " + ((Parameter & 0xFF00)>>8).ToString("X2") ;
                 }
             }
-            return $"{Position:X4}  {bytes.PadRight(8)}  {Format()}";
+            
+            if (enumsToWriteValue.Contains(Opcode.Enum) && Opcode.Mode!= BindingMode.Immediate)
+            {
+                valChange = "= " + outsideParameter.ToString("X2");
+            }
+            return $"{Position:X4}  {bytes.PadRight(8)}  {Format(outsideParameter)} {valChange}";
         }
 
-        private string Format()
+        private string Format(ushort outsideParameter)
         {
             if (Opcode.Enum == OpcodeEnum.DB)
             {
@@ -46,6 +54,13 @@ namespace emulator6502
             }
             if (Opcode.Mode == BindingMode.Implied)
                 return Opcode.Enum.ToString();
+
+
+            if (Opcode.Enum == OpcodeEnum.BNE || Opcode.Enum == OpcodeEnum.BCC || Opcode.Enum == OpcodeEnum.BCS ||
+                Opcode.Enum == OpcodeEnum.BMI || Opcode.Enum == OpcodeEnum.BEQ || Opcode.Enum == OpcodeEnum.BPL|| Opcode.Enum == OpcodeEnum.BVC ||  Opcode.Enum == OpcodeEnum.BVS)
+            {
+                return $"{Opcode.Enum} ${outsideParameter:X4}";
+            }
             
             var op = Opcode.Enum.ToString() + " ";
             

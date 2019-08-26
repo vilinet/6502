@@ -1,4 +1,7 @@
-﻿namespace emulator6502
+﻿using System;
+using System.IO;
+
+namespace emulator6502
 {
     public delegate void OpCodeEventHandler(Cpu sender, OpcodeEventArgs e);
 
@@ -44,13 +47,14 @@
             PC = ReadWord(0XFFFC); 
             State = CpuState.Running;
             Cycles = 8;
+            SP = 0xFF;
             Status.Reset();
+            
         }
 
         public bool Clock()
         {
             ushort prevPC = PC;
-                
             var entry = opcodes[Bus.Read(PC++)];
             if (entry.Enum == OpcodeEnum.BRK) return false;
 
@@ -64,8 +68,22 @@
             {
                 PC = prevPC;
             }
+            
+            File.AppendAllText("c:/tmp/stack.txt", "STACK: $" + PC.ToString("X4") + "\n");
+            for (int i = SP+1; i <= 255; i++)
+            {
+                byte val = Bus.Read((ushort) (0x0100 + i));
+                File.AppendAllText("c:/tmp/stack.txt","\t0x"+i.ToString("X2") + " -> " +val.ToString("X2") + "\n");
+            }
 
             return true;
+        }
+
+        public ushort GetValue(FullOpcode fullOpcode)
+        {
+            if (fullOpcode.Opcode.Mode == BindingMode.Relative)
+                return operations.GetAddress(fullOpcode.Parameter, fullOpcode.Opcode.Mode);
+            return operations.GetValue(fullOpcode.Parameter, fullOpcode.Opcode.Mode);
         }
 
         public void Run()
@@ -77,6 +95,7 @@
                     State = CpuState.Break;
                     break;
                 }
+                
             }
         }        
 

@@ -75,7 +75,7 @@ namespace emulator6502
             return (ushort)((_cpu.Bus.Read((ushort)(address + 1)) << 8) + _cpu.Bus.Read(address));
         }
 
-        private ushort GetAddress(ushort param, BindingMode mode)
+        public ushort GetAddress(ushort param, BindingMode mode)
         {
             switch (mode)
             {
@@ -105,6 +105,10 @@ namespace emulator6502
 
                 case BindingMode.AbsoluteY:
                     return (ushort)(param + _cpu.Y);
+                
+                case BindingMode.Relative:
+                    if (param < 128) return (ushort) (_cpu.PC + param);
+                    else return (ushort)(_cpu.PC - (ushort)((((byte)param) ^ 0xFF) + 1));
 
                 default:
                     throw new Exception("Not supported mode: " + mode);
@@ -122,16 +126,18 @@ namespace emulator6502
 
         private void PushPc(ushort val)
         {
-            Push((byte)(val & 0x00FF));
             Push((byte)((val & 0xFF00) >> 8));
+            Push((byte)(val & 0x00FF));
         }
 
-        private byte GetValue(ushort param, BindingMode mode)
+        public byte GetValue(ushort param, BindingMode mode)
         {
             if (mode == BindingMode.Immediate) return (byte)param;
             if (mode == BindingMode.Implied) return _cpu.A;
             return _cpu.Bus.Read(GetAddress(param, mode));
         }
+        
+        
 
         private void SetNegativeFlag(byte val)
         {
@@ -263,8 +269,10 @@ namespace emulator6502
         private void Bit(ushort param, BindingMode mode)
         {
             var val = GetValue(param, mode);
-            SetNegativeAndZeroFlag(val);
-            _cpu.Status.Overflow = (val & 0b01000000) > 0;
+            var temp = (byte)(_cpu.A & val);
+            _cpu.Status.Zero = temp == 0;
+            SetNegativeFlag(val);
+            _cpu.Status.Overflow = (val & (1 << 6)) != 0;
         }
 
         private void Ldy(ushort val, BindingMode mode)
@@ -306,15 +314,14 @@ namespace emulator6502
         private void Rti(ushort param, BindingMode mode)
         {
             Plp(0, BindingMode.Implied);
-            PopPc();
+            _cpu.PC = PopWord();
         }
 
-        private void PopPc()
+        private ushort PopWord()
         {
             byte f = Pop();
             byte s = Pop();
-            ushort VAL = (ushort)((f<<8) + s);
-            _cpu.PC = VAL;
+            return (ushort)((s<<8) + f);
         }
 
         private void Jmp(ushort param, BindingMode mode)
@@ -354,7 +361,8 @@ namespace emulator6502
 
         private byte Pop()
         {
-            return _cpu.Bus.Read((ushort)(0x0100 + (++_cpu.SP)));
+            _cpu.SP += 1;
+            return _cpu.Bus.Read((ushort)(0x0100 + _cpu.SP));
         }
 
         private void Cpx(ushort value, BindingMode mode)
@@ -387,7 +395,9 @@ namespace emulator6502
 
         private void Push(byte value)
         {
-            _cpu.Bus.Write((ushort)(0x0100 + (_cpu.SP--)), value);
+            _cpu.Bus.Write((ushort)(0x0100 + _cpu.SP), value);
+            _cpu.SP--;
+            Console.WriteLine("Push: "+ value.ToString("X2"));
         }
 
         private void Php(ushort param, BindingMode mode)
@@ -404,7 +414,7 @@ namespace emulator6502
             _cpu.Status.Zero = (val & 0b00000010) > 0;
             _cpu.Status.InterruptDisable = (val & 0b00000100) > 0;
             _cpu.Status.DecimalMode = (val & 0b00001000) > 0;
-            _cpu.Status.BreakInterrupt =  (val & 0b00010000) > 0;
+            _cpu.Status.BreakInterrupt = false;
             
             _cpu.Status.Overflow = (val & 0b01000000) > 0;
             _cpu.Status.Negative = (val & 0b10000000) > 0;
@@ -489,12 +499,12 @@ namespace emulator6502
 
         private void Rts(ushort param, BindingMode mode)
         {
-            PopPc();
+            _cpu.PC = (ushort)(PopWord() + 1 );
         }
 
         private void Jsr(ushort param, BindingMode mode)
         {
-            PushPc((ushort)(_cpu.PC));
+            PushPc((ushort)(_cpu.PC-1));
             _cpu.PC = param;
         }
 
