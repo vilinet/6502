@@ -20,8 +20,7 @@ namespace console
 
             var bus = new Bus();
             var cpu = new Cpu(bus);
-            if(File.Exists("c:/tmp/my.log")) File.Delete("c:/tmp/my.log");
-            if(File.Exists("c:/tmp/stack.txt")) File.Delete("c:/tmp/stack.txt");
+
             rom.LoadBinaryProgram( File.ReadAllBytes( @"C:\code\6502\nestest.nes")[0x0010 .. 0x4000], 0x0);
             bus.AddMap(0x0, ram);
             bus.AddMap(0x4000,  new Ram(0x4000) );
@@ -34,17 +33,13 @@ namespace console
             //cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
             
             cpu.Reset();
+            /*cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
             cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
-            cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
-            cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);
+            cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);*/
 
 
-            //cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+           // cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
  
-            cpu.Clock();
-            cpu.Clock();
-            cpu.Clock();
-            cpu.Clock();
             cpu.Run();
         }
 
@@ -56,8 +51,7 @@ namespace console
         {
             var bb = e.Full.ToString(cpu.GetValue(e.Full)).PadRight(40);
             var str = ( $"{bb} A:{cpu.A:X2} X:{cpu.X:X2} Y:{cpu.Y:X2} P:{cpu.Status.Value:X2} SP:{cpu.SP:X2} ");
-//            Console.WriteLine(str);
-//            File.AppendAllText("c:/tmp/my.log", str+"\n");
+           // Console.WriteLine(str);
         }
     }
 }
