@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace emulator6502
@@ -19,12 +17,12 @@ namespace emulator6502
             while (stream.Position < stream.Length)
             {
                 var pos = stream.Position;
-                Opcode opcode;
+                
                 var code = (byte)stream.ReadByte();
                 ushort parameter = 0;
-                byte[] byteCode = new[] { code };
-                
-                if (!_opcodes.ContainsKey(code))
+                Opcode opcode = _opcodes[code];
+
+                if (opcode == null)
                 {
                     opcode = new Opcode(code, OpcodeEnum.DB, BindingMode.Implied, 0);
                     parameter = code;
@@ -34,13 +32,11 @@ namespace emulator6502
                 if (opcode.Length == 1)
                 {
                     parameter = (ushort) stream.ReadByte();
-                    byteCode = new byte[]{code , (byte)parameter};
                 } 
                 else if (opcode.Length == 2)
                 {
                     var f = stream.ReadByte();
                     var s = stream.ReadByte();
-                    byteCode = new byte[]{code , (byte)f, (byte)s};
                     parameter = (ushort)(f +( s << 8));
                 }
                     

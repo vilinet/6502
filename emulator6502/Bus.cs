@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-
-namespace emulator6502
+﻿namespace emulator6502
 {
     public class Bus : IAddressable
     {

@@ -1,8 +1,6 @@
 ﻿using emulator6502;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace console
 {
@@ -38,18 +36,20 @@ namespace console
             cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);*/
 
 
-            // cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+            //cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
 
             var start = DateTime.Now;
-            int runCount = 1000;
+            int runCount = 1750;
             int i = 0;
             long cycles = 0;
+
             while (i++ < runCount)
             {
                 cpu.Reset();
                 cpu.Run();
                 cycles += cpu.Cycles;
             }
+
             Console.WriteLine($"Finished: {runCount} runs,  {(DateTime.Now - start).TotalMilliseconds} milliseconds, cycles: {cycles}");
 
         }
@@ -62,7 +62,7 @@ namespace console
         {
             var bb = e.Full.ToString(cpu.GetValue(e.Full)).PadRight(40);
             var str = ( $"{bb} A:{cpu.A:X2} X:{cpu.X:X2} Y:{cpu.Y:X2} P:{cpu.Status.Value:X2} SP:{cpu.SP:X2} ");
-           // Console.WriteLine(str);
+            Console.WriteLine(str);
         }
     }
 }

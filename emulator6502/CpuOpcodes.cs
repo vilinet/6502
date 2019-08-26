@@ -103,12 +103,10 @@ namespace emulator6502
                     return (byte)(param + _cpu.Y);
 
                 case BindingMode.Indirect:
-                    var eahelp = param;
-                    var eahelp2 = (ushort) ((eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF));	//replicate 6502 page-boundary wraparound bug
-                    return  (ushort) (_cpu.Bus.Read(eahelp) | ((ushort) _cpu.Bus.Read(eahelp2) << 8));
+                    var eahelp2 = (ushort) ((param & 0xFF00) | ((param + 1) & 0x00FF));	//replicate 6502 page-boundary wraparound bug
+                    return  (ushort) (_cpu.Bus.Read(param) | (_cpu.Bus.Read(eahelp2) << 8));
 
                 case BindingMode.IndexedIndirect:
-                    
                     return ReadIndirectWord((byte)(_cpu.X + param));
 
                 case BindingMode.IndirectIndexed:
@@ -128,7 +126,7 @@ namespace emulator6502
                     else return (ushort)(_cpu.PC - (ushort)((((byte)param) ^ 0xFF) + 1));
 
                 default:
-                    throw new Exception("Not supported mode: " + mode);
+                    return 0xCCCC;
             }
         }
 
@@ -156,41 +154,23 @@ namespace emulator6502
         
         private void SetNegativeFlag(byte val)
         {
-            _cpu.Status.Negative = val > 127;
+            _cpu.Status.Negative = (val & 0x80) == 0x80;
         }
 
         private void SetNegativeAndZeroFlag(byte val)
         {
-            SetNegativeFlag(val);
+            _cpu.Status.Negative = (val & 0x80) == 0x80;
             _cpu.Status.Zero = val == 0;
         }
 
         #endregion
         
-
         private void AdcCore(byte value)
         {
             var result = (byte)(((byte)(_cpu.A + value)) + (byte)(_cpu.Status.Carry ? 1 : 0));
             var hasCarry = (_cpu.A + value + (_cpu.Status.Carry ? 1 : 0)) > 255;
 
             _cpu.Status.Carry = false;
-
-           /* if (_cpu.Status.DecimalMode)
-            {
-                if (((_cpu.A ^ value ^ result) & 0x10) == 0x10)
-                {
-                    result += 0x06;
-                }
-                if ((result & 0xf0) > 0x90)
-                {
-                    result += 0x60;
-                }
-                if (result > 99)
-                {
-                    _cpu.Status.Carry = true;
-                }
-            }*/
-
             _cpu.Status.Overflow = ((_cpu.A ^ result) & (value ^ result) & 0x80) == 0x80;
             _cpu.Status.Carry |= hasCarry;
             _cpu.A = (byte)(result & 0xFF);

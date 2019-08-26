@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace emulator6502
 {
@@ -16,10 +15,11 @@ namespace emulator6502
             Parameter = parameter;
             Position = position;
         }
+
         private static List<OpcodeEnum> enumsToWriteValue = new List<OpcodeEnum> { OpcodeEnum.BIT, OpcodeEnum.LDA, OpcodeEnum.STA,  OpcodeEnum.STX,  OpcodeEnum.STY, OpcodeEnum.LDY, OpcodeEnum.LDX  };
         public string ToString(ushort outsideParameter)
         {
-            string bytes = "";
+            string bytes;
             string valChange = "";
 
             if (Opcode.Enum == OpcodeEnum.DB)
