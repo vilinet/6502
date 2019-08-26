@@ -68,7 +68,14 @@ namespace emulator6502
             this[OpcodeEnum.TYA] = Tya;
             this[OpcodeEnum.LAX] = Lax;
             this[OpcodeEnum.SAX] = Sax;
+            this[OpcodeEnum.DCP] = Dcp;
+            this[OpcodeEnum.ISB] = Isb;
+            this[OpcodeEnum.SLO] = Slo;
+            this[OpcodeEnum.RLA] = Rla;
+            this[OpcodeEnum.SRE] = Sre;
+            this[OpcodeEnum.RRA] = Rra;
         }
+
 
         #region Common Functions
 
@@ -147,7 +154,6 @@ namespace emulator6502
             return _cpu.Bus.Read(GetAddress(param, mode));
         }
         
-
         private void SetNegativeFlag(byte val)
         {
             _cpu.Status.Negative = val > 127;
@@ -192,6 +198,23 @@ namespace emulator6502
             SetNegativeAndZeroFlag(result);
         }
         
+        private void Dcp(ushort param, BindingMode  mode)
+        {
+            ushort address = GetAddress(param, mode);
+            var val = (byte)(_cpu.Bus.Read(address) -1);
+            _cpu.Bus.Write(address, (byte)(val));
+            Cmp(val, BindingMode.Immediate);
+        }
+        
+        private void Isb(ushort param, BindingMode  mode)
+        {
+            ushort address = GetAddress(param, mode);
+            var val = (byte)(_cpu.Bus.Read(address) + 1);
+            _cpu.Bus.Write(address, (byte)(val));
+            Sbc(val, BindingMode.Immediate);
+        }
+        
+        
         private void Lax(ushort param, BindingMode  mode)
         {
             Lda(param, mode);
@@ -233,6 +256,30 @@ namespace emulator6502
             _cpu.A ^= GetValue(param, mode);
             SetNegativeAndZeroFlag(_cpu.A);
         }
+        
+        private void Slo(ushort param, BindingMode  mode)
+        {
+            Asl(param, mode);
+            Ora(param, mode);
+        }
+        private void Rla(ushort param, BindingMode  mode)
+        {
+            Rol(param, mode);
+            And(param, mode);
+        }
+        
+        private void Sre(ushort param, BindingMode  mode)
+        {
+            Lsr(param, mode);
+            Eor(param, mode);
+        }
+        
+        private void Rra(ushort param, BindingMode  mode)
+        {
+            Ror(param, mode);
+            Adc(param, mode);
+        }
+
 
         private void Asl(ushort param, BindingMode mode)
         {
@@ -420,7 +467,6 @@ namespace emulator6502
         {
             _cpu.Bus.Write((ushort)(0x0100 + _cpu.SP), value);
             _cpu.SP--;
-            Console.WriteLine("Push: "+ value.ToString("X2"));
         }
 
         private void Php(ushort param, BindingMode mode)

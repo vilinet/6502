@@ -61,6 +61,18 @@
         DB,
         LSR,
         LAX,
-        SAX
+        SAX,
+        DCP,
+        /// <summary>
+        /// INS, ISC
+        /// </summary>
+        ISB,
+        SLO,
+        RLA,
+        /// <summary>
+        /// LSE
+        /// </summary>
+        SRE,
+        RRA
     }
 }

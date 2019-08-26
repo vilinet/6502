@@ -16,16 +16,17 @@ namespace console
         static void Main(string[] args)
         {
             var ram = new Ram(0x0800);
-            var rom = new Rom(0x4001);
+            var rom = new Rom(0x4000);
 
             var bus = new Bus();
             var cpu = new Cpu(bus);
             if(File.Exists("c:/tmp/my.log")) File.Delete("c:/tmp/my.log");
             if(File.Exists("c:/tmp/stack.txt")) File.Delete("c:/tmp/stack.txt");
             rom.LoadBinaryProgram( File.ReadAllBytes( @"C:\code\6502\nestest.nes")[0x0010 .. 0x4000], 0x0);
-            bus.AddMap(0x0, 0x0800, ram);
-            bus.AddMap(0x8000, 0x8000+0x4000-1, rom);
-            bus.AddMap(0xC000, (ushort)(0xC000+0x4000-1), rom);
+            bus.AddMap(0x0, ram);
+            bus.AddMap(0x4000,  new Ram(0x4000) );
+            bus.AddMap(0x8000,  rom);
+            bus.AddMap(0xC000,  rom);
 
             //Start vector for cpu (first absolute address of rom)
             bus.Write(0xFFFC, 0xC000);
@@ -38,7 +39,7 @@ namespace console
             cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);
 
 
-            cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+            //cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
  
             cpu.Clock();
             cpu.Clock();
@@ -55,8 +56,8 @@ namespace console
         {
             var bb = e.Full.ToString(cpu.GetValue(e.Full)).PadRight(40);
             var str = ( $"{bb} A:{cpu.A:X2} X:{cpu.X:X2} Y:{cpu.Y:X2} P:{cpu.Status.Value:X2} SP:{cpu.SP:X2} ");
-            Console.WriteLine(str);
-            File.AppendAllText("c:/tmp/my.log", str+"\n");
+//            Console.WriteLine(str);
+//            File.AppendAllText("c:/tmp/my.log", str+"\n");
         }
     }
 }

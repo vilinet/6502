@@ -11,6 +11,11 @@ namespace emulator6502
             public ushort From;
             public ushort To;
             public IAddressable Addressable;
+
+            public override string ToString()
+            {
+                return From.ToString("X4") + "-" + To.ToString("X4");
+            }
         }
         
         private readonly List<Entry> _entries = new List<Entry>();
@@ -18,6 +23,11 @@ namespace emulator6502
         public void AddMap(ushort from, ushort to, Addressable addressable)
         {
             _entries.Add(new Entry { From = from, To = to, Addressable = addressable } );
+        }
+        
+        public void AddMap(ushort from, Addressable addressable)
+        {
+            _entries.Add(new Entry { From = from, To = (ushort)(from + addressable.Size-1), Addressable = addressable } );
         }
 
         public void Write(ushort address, byte value)

@@ -188,6 +188,9 @@ namespace emulator6502
             Insert(new Opcode(0x16, OpcodeEnum.ASL, BindingMode.ZeroPageX, 6));
             Insert(new Opcode(0x0E, OpcodeEnum.ASL, BindingMode.Absolute, 6));
             Insert(new Opcode(0x1E, OpcodeEnum.ASL, BindingMode.AbsoluteX, 7));
+            
+            
+
 
             Insert(new Opcode(0x4A, OpcodeEnum.LSR, BindingMode.Implied, 2));
             Insert(new Opcode(0x46, OpcodeEnum.LSR, BindingMode.ZeroPage, 5));
@@ -243,6 +246,61 @@ namespace emulator6502
             Insert(new Opcode(0xE1, OpcodeEnum.SBC, BindingMode.IndexedIndirect, 6));
             Insert(new Opcode(0xF1, OpcodeEnum.SBC, BindingMode.IndirectIndexed, 5));
             
+            Insert(new Opcode(0xEB, OpcodeEnum.SBC, BindingMode.Immediate, 2));
+            
+            
+            Insert(new Opcode(0xCF, OpcodeEnum.DCP, BindingMode.Absolute, 6));
+            Insert(new Opcode(0xDF, OpcodeEnum.DCP, BindingMode.AbsoluteX, 7));
+            Insert(new Opcode(0xDB, OpcodeEnum.DCP, BindingMode.AbsoluteY, 7));
+            Insert(new Opcode(0xC7, OpcodeEnum.DCP, BindingMode.ZeroPage, 5));
+            Insert(new Opcode(0xD7, OpcodeEnum.DCP, BindingMode.ZeroPageX, 6));
+            Insert(new Opcode(0xC3, OpcodeEnum.DCP, BindingMode.IndexedIndirect, 8));
+            Insert(new Opcode(0xD3, OpcodeEnum.DCP, BindingMode.IndirectIndexed, 8));
+            
+            Insert(new Opcode(0xEF, OpcodeEnum.ISB, BindingMode.Absolute, 6));
+            Insert(new Opcode(0xFF, OpcodeEnum.ISB, BindingMode.AbsoluteX, 7));
+            Insert(new Opcode(0xFB, OpcodeEnum.ISB, BindingMode.AbsoluteY, 7));
+            Insert(new Opcode(0xE7, OpcodeEnum.ISB, BindingMode.ZeroPage, 5));
+            Insert(new Opcode(0xF7, OpcodeEnum.ISB, BindingMode.ZeroPageX, 6));
+            Insert(new Opcode(0xE3, OpcodeEnum.ISB, BindingMode.IndexedIndirect, 8));
+            Insert(new Opcode(0xF3, OpcodeEnum.ISB, BindingMode.IndirectIndexed, 8));
+            
+            Insert(new Opcode(0x0F, OpcodeEnum.SLO, BindingMode.Absolute, 6));
+            Insert(new Opcode(0x1F, OpcodeEnum.SLO, BindingMode.AbsoluteX, 7));
+            Insert(new Opcode(0x1B, OpcodeEnum.SLO, BindingMode.AbsoluteY, 7));
+            Insert(new Opcode(0x07, OpcodeEnum.SLO, BindingMode.ZeroPage, 5));
+            Insert(new Opcode(0x17, OpcodeEnum.SLO, BindingMode.ZeroPageX, 6));
+            Insert(new Opcode(0x03, OpcodeEnum.SLO, BindingMode.IndexedIndirect, 8));
+            Insert(new Opcode(0x13, OpcodeEnum.SLO, BindingMode.IndirectIndexed, 8));
+            
+                 
+            Insert(new Opcode(0x2F, OpcodeEnum.RLA, BindingMode.Absolute, 6));
+            Insert(new Opcode(0x3F, OpcodeEnum.RLA, BindingMode.AbsoluteX, 7));
+            Insert(new Opcode(0x3B, OpcodeEnum.RLA, BindingMode.AbsoluteY, 7));
+            Insert(new Opcode(0x27, OpcodeEnum.RLA, BindingMode.ZeroPage, 5));
+            Insert(new Opcode(0x37, OpcodeEnum.RLA, BindingMode.ZeroPageX, 6));
+            Insert(new Opcode(0x23, OpcodeEnum.RLA, BindingMode.IndexedIndirect, 8));
+            Insert(new Opcode(0x33, OpcodeEnum.RLA, BindingMode.IndirectIndexed, 8));
+            
+            Insert(new Opcode(0x4F, OpcodeEnum.SRE, BindingMode.Absolute, 6));
+            Insert(new Opcode(0x5F, OpcodeEnum.SRE, BindingMode.AbsoluteX, 7));
+            Insert(new Opcode(0x5B, OpcodeEnum.SRE, BindingMode.AbsoluteY, 7));
+            Insert(new Opcode(0x47, OpcodeEnum.SRE, BindingMode.ZeroPage, 5));
+            Insert(new Opcode(0x57, OpcodeEnum.SRE, BindingMode.ZeroPageX, 6));
+            Insert(new Opcode(0x43, OpcodeEnum.SRE, BindingMode.IndexedIndirect, 8));
+            Insert(new Opcode(0x53, OpcodeEnum.SRE, BindingMode.IndirectIndexed, 8));
+            
+                
+            Insert(new Opcode(0x6f, OpcodeEnum.RRA, BindingMode.Absolute, 6));
+            Insert(new Opcode(0x7F, OpcodeEnum.RRA, BindingMode.AbsoluteX, 7));
+            Insert(new Opcode(0x7B, OpcodeEnum.RRA, BindingMode.AbsoluteY, 7));
+            Insert(new Opcode(0x67, OpcodeEnum.RRA, BindingMode.ZeroPage, 5));
+            Insert(new Opcode(0x77, OpcodeEnum.RRA, BindingMode.ZeroPageX, 6));
+            Insert(new Opcode(0x63, OpcodeEnum.RRA, BindingMode.IndexedIndirect, 8));
+            Insert(new Opcode(0x73, OpcodeEnum.RRA, BindingMode.IndirectIndexed, 8));
+            
+            
+
             Insert(new Opcode(0xAF, OpcodeEnum.LAX, BindingMode.Absolute, 4));
             Insert(new Opcode(0xBF, OpcodeEnum.LAX, BindingMode.AbsoluteY, 4));
             Insert(new Opcode(0xA7, OpcodeEnum.LAX, BindingMode.ZeroPage, 3));

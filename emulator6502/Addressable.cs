@@ -8,9 +8,9 @@
 
         private byte[] Data { get; set; }
 
-        protected Addressable(ushort size)
+        protected Addressable(int size)
         {
-            Data = new byte[size + 1];
+            Data = new byte[size];
         }
 
         public virtual void Write(ushort address, byte value)

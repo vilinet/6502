@@ -5,7 +5,7 @@ namespace emulator6502
 {
     public class Rom : Addressable
     {
-        public Rom(ushort size) : base(size)
+        public Rom(int size) : base(size)
         {
         }
 
@@ -13,7 +13,6 @@ namespace emulator6502
         {
             for (ushort i = 0; i < data.Length; i++)
                 Write(address++, data[i]);
-            Console.WriteLine("Max address:" + (address-1).ToString());
         }
 
         /// <summary>
