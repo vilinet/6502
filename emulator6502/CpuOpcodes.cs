@@ -66,6 +66,8 @@ namespace emulator6502
             this[OpcodeEnum.TXA] = Txa;
             this[OpcodeEnum.TXS] = Txs;
             this[OpcodeEnum.TYA] = Tya;
+            this[OpcodeEnum.LAX] = Lax;
+            this[OpcodeEnum.SAX] = Sax;
         }
 
         #region Common Functions
@@ -145,7 +147,6 @@ namespace emulator6502
             return _cpu.Bus.Read(GetAddress(param, mode));
         }
         
-        
 
         private void SetNegativeFlag(byte val)
         {
@@ -190,9 +191,23 @@ namespace emulator6502
 
             SetNegativeAndZeroFlag(result);
         }
+        
+        private void Lax(ushort param, BindingMode  mode)
+        {
+            Lda(param, mode);
+            Ldx(param, mode);
+        }
+        
+        private void Sax(ushort param, BindingMode  mode)
+        {
+            Sta(param, mode);
+            Stx(param, mode);
+            _cpu.Bus.Write( GetAddress(param, mode),  (byte) (_cpu.A & _cpu.X));
+        }
 
         private void Adc(ushort param, BindingMode mode)
         {
+      
             AdcCore(GetValue(param, mode));
         }
 

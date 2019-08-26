@@ -39,7 +39,7 @@ namespace console
 
 
             cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
-
+ 
             cpu.Clock();
             cpu.Clock();
             cpu.Clock();

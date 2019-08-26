@@ -122,16 +122,44 @@ namespace emulator6502
             #endregion
 
             #region Routines       
-            Insert(new Opcode(0xEA, OpcodeEnum.NOP, BindingMode.Implied, 2));
-
             Insert(new Opcode(0x00, OpcodeEnum.BRK, BindingMode.Implied, 7));
             Insert(new Opcode(0x40, OpcodeEnum.RTI, BindingMode.Implied, 6));
+            
+            Insert(new Opcode(0xEA, OpcodeEnum.NOP, BindingMode.Implied, 2));
+            Insert(new Opcode(0x04, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0x0C, OpcodeEnum.NOP, BindingMode.Absolute, 4));
+            Insert(new Opcode(0x14, OpcodeEnum.NOP, BindingMode.Immediate, 4));
+            Insert(new Opcode(0x1A, OpcodeEnum.NOP, BindingMode.Implied, 2));
+            Insert(new Opcode(0x1C, OpcodeEnum.NOP, BindingMode.Absolute, 4));
+            Insert(new Opcode(0x34, OpcodeEnum.NOP, BindingMode.Immediate, 4));
 
+            Insert(new Opcode(0x3A, OpcodeEnum.NOP, BindingMode.Implied, 2));
+            Insert(new Opcode(0x3C, OpcodeEnum.NOP, BindingMode.Absolute, 4));
+            Insert(new Opcode(0x44, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0x54, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0x5A, OpcodeEnum.NOP, BindingMode.Implied, 2));
+            Insert(new Opcode(0x5C, OpcodeEnum.NOP, BindingMode.Absolute, 4));
+            Insert(new Opcode(0x64, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0x74, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0x7A, OpcodeEnum.NOP, BindingMode.Implied, 2));
+            Insert(new Opcode(0x7C, OpcodeEnum.NOP, BindingMode.Absolute, 4));
+            Insert(new Opcode(0x80, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0x82, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0x89, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0xC2, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0xD4, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0xDA, OpcodeEnum.NOP, BindingMode.Implied, 2));
+            Insert(new Opcode(0xDC, OpcodeEnum.NOP, BindingMode.Absolute, 4));
+            Insert(new Opcode(0xE2, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0xF4, OpcodeEnum.NOP, BindingMode.Immediate, 3));
+            Insert(new Opcode(0xFA, OpcodeEnum.NOP, BindingMode.Implied, 2));
+            Insert(new Opcode(0xFC, OpcodeEnum.NOP, BindingMode.Absolute, 4));
+            
             Insert(new Opcode(0x60, OpcodeEnum.RTS, BindingMode.Implied, 6));
             Insert(new Opcode(0x20, OpcodeEnum.JSR, BindingMode.Absolute, 6));
 
             Insert(new Opcode(0x4C, OpcodeEnum.JMP, BindingMode.Absolute, 3));
-            Insert(new Opcode(0x6C, OpcodeEnum.JMP, BindingMode.Indirect, 5));
+            Insert(new Opcode(0x6C, OpcodeEnum.JMP, BindingMode.Indirect, 3));
 
             #endregion
 
@@ -214,6 +242,19 @@ namespace emulator6502
             Insert(new Opcode(0xF9, OpcodeEnum.SBC, BindingMode.AbsoluteY, 4));
             Insert(new Opcode(0xE1, OpcodeEnum.SBC, BindingMode.IndexedIndirect, 6));
             Insert(new Opcode(0xF1, OpcodeEnum.SBC, BindingMode.IndirectIndexed, 5));
+            
+            Insert(new Opcode(0xAF, OpcodeEnum.LAX, BindingMode.Absolute, 4));
+            Insert(new Opcode(0xBF, OpcodeEnum.LAX, BindingMode.AbsoluteY, 4));
+            Insert(new Opcode(0xA7, OpcodeEnum.LAX, BindingMode.ZeroPage, 3));
+            Insert(new Opcode(0xB7, OpcodeEnum.LAX, BindingMode.ZeroPageY, 4));
+            Insert(new Opcode(0xA3, OpcodeEnum.LAX, BindingMode.IndexedIndirect, 6));
+            Insert(new Opcode(0xB3, OpcodeEnum.LAX, BindingMode.IndirectIndexed, 5));
+    
+            Insert(new Opcode(0x83, OpcodeEnum.SAX, BindingMode.IndexedIndirect, 6));
+            Insert(new Opcode(0x87, OpcodeEnum.SAX, BindingMode.ZeroPage, 3));
+            Insert(new Opcode(0x8F, OpcodeEnum.SAX, BindingMode.Absolute, 4));
+            Insert(new Opcode(0x97, OpcodeEnum.SAX, BindingMode.ZeroPageY, 4));
+
             #endregion
 
             #region Branches       

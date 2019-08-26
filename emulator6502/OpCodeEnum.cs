@@ -59,6 +59,8 @@
         BVC,
         //Non used in assembler, every other stuff
         DB,
-        LSR
+        LSR,
+        LAX,
+        SAX
     }
 }
