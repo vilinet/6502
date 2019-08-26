@@ -31,16 +31,27 @@ namespace console
             bus.Write(0xFFFC, 0xC000);
 
             //cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
-            
-            cpu.Reset();
+
+
             /*cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
             cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
             cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);*/
 
 
-           // cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
- 
-            cpu.Run();
+            // cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+
+            var start = DateTime.Now;
+            int runCount = 1000;
+            int i = 0;
+            long cycles = 0;
+            while (i++ < runCount)
+            {
+                cpu.Reset();
+                cpu.Run();
+                cycles += cpu.Cycles;
+            }
+            Console.WriteLine($"Finished: {runCount} runs,  {(DateTime.Now - start).TotalMilliseconds} milliseconds, cycles: {cycles}");
+
         }
 
         private static void Cpu_AfterOperationExecuted(Cpu cpu, OpcodeEventArgs e)
