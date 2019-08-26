@@ -50,7 +50,6 @@ namespace console
         private static void Cpu_AfterOperationExecuted(Cpu cpu, OpcodeEventArgs e)
         {
         }
-        
 
         private static void Cpu_BeforeOperationExecuted(Cpu cpu, OpcodeEventArgs e)
         {

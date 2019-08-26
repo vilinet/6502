@@ -74,13 +74,18 @@ namespace emulator6502
         {
             return (ushort)((_cpu.Bus.Read((ushort)(address + 1)) << 8) + _cpu.Bus.Read(address));
         }
+        
+        private ushort ReadIndirectWord(byte address)
+        {
+            return (ushort)((_cpu.Bus.Read((byte)(address + 1)) << 8) + _cpu.Bus.Read(address));
+        }
 
         public ushort GetAddress(ushort param, BindingMode mode)
         {
             switch (mode)
             {
                 case BindingMode.ZeroPage:
-                    return (byte)param;
+                    return  (byte)param ;
 
                 case BindingMode.ZeroPageX:
                     return (byte)(param + _cpu.X);
@@ -89,13 +94,16 @@ namespace emulator6502
                     return (byte)(param + _cpu.Y);
 
                 case BindingMode.Indirect:
-                    return ReadWord(param);
+                    var eahelp = param;
+                    var eahelp2 = (ushort) ((eahelp & 0xFF00) | ((eahelp + 1) & 0x00FF));	//replicate 6502 page-boundary wraparound bug
+                    return  (ushort) (_cpu.Bus.Read(eahelp) | ((ushort) _cpu.Bus.Read(eahelp2) << 8));
 
                 case BindingMode.IndexedIndirect:
-                    return ReadWord(_cpu.Bus.Read((ushort)(_cpu.X + param)));
+                    
+                    return ReadIndirectWord((byte)(_cpu.X + param));
 
                 case BindingMode.IndirectIndexed:
-                    return (ushort)(ReadWord(param) + _cpu.Y);
+                    return (ushort)(ReadIndirectWord((byte)param) + _cpu.Y);
 
                 case BindingMode.Absolute:
                     return param;

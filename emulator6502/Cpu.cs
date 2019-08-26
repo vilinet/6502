@@ -69,12 +69,6 @@ namespace emulator6502
                 PC = prevPC;
             }
             
-            File.AppendAllText("c:/tmp/stack.txt", "STACK: $" + PC.ToString("X4") + "\n");
-            for (int i = SP+1; i <= 255; i++)
-            {
-                byte val = Bus.Read((ushort) (0x0100 + i));
-                File.AppendAllText("c:/tmp/stack.txt","\t0x"+i.ToString("X2") + " -> " +val.ToString("X2") + "\n");
-            }
 
             return true;
         }
