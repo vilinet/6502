@@ -19,7 +19,7 @@ namespace emulator6502
         public byte X { get; internal set; }
         public byte Y { get; internal set; }
 
-        public uint Cycles { get; internal set; }
+        public ulong Cycles { get; internal set; }
 
         public void Irq()
         {
@@ -55,6 +55,7 @@ namespace emulator6502
         public bool Clock()
         {
             ushort prevPC = PC;
+            ulong cycles = Cycles;
             var entry = opcodes[Bus.Read(PC++)];
             if (entry.Enum == OpcodeEnum.BRK) return false;
 
@@ -64,7 +65,7 @@ namespace emulator6502
             else if (entry.Length == 1) parameter = Bus.Read(PC);
             PC += entry.Length;
 
-            if (!InnerExecute(entry, parameter, prevPC))
+            if (!InnerExecute(entry, parameter, prevPC, cycles))
             {
                 PC = prevPC;
             }
@@ -95,27 +96,25 @@ namespace emulator6502
 
         public void Execute(OpcodeEnum opcodeEnum, BindingMode mode, ushort parameter = 0)
         {
-            InnerExecute(opcodes.Get(opcodeEnum, mode), parameter, 0);
+            InnerExecute(opcodes.Get(opcodeEnum, mode), parameter, 0, 0);
         }
 
         public void Execute(OpcodeEnum opcodeEnum, ushort parameter = 0)
         {
-            InnerExecute(opcodes.Get(opcodeEnum), parameter, 0);
+            InnerExecute(opcodes.Get(opcodeEnum), parameter, 0, 0);
         }
 
         public void Execute(Opcode opcode, ushort parameter = 0)
         {
-            InnerExecute(opcode, parameter, 0);
+            InnerExecute(opcode, parameter, 0, 0);
         }
 
-        private bool InnerExecute(Opcode opcode, ushort param, ushort pos)
+        private bool InnerExecute(Opcode opcode, ushort param, ushort pos, ulong cycles)
         {
-
-
             OpcodeEventArgs arg = null;
             if (BeforeOperationExecuted != null)
             {
-                arg = new OpcodeEventArgs(new FullOpcode(opcode, param, pos));
+                arg = new OpcodeEventArgs(new FullOpcode(opcode, param, pos), (int)(Cycles- cycles));
                 BeforeOperationExecuted?.Invoke(this, arg);
 
                 if (arg.RequestPauseExecution)
@@ -131,7 +130,7 @@ namespace emulator6502
 
             if (AfterOperationExecuted != null)
             {
-                if (arg == null) arg = new OpcodeEventArgs(new FullOpcode(opcode, param, pos));
+                if (arg == null) arg = new OpcodeEventArgs(new FullOpcode(opcode, param, pos), (int)(Cycles-cycles));
                 else arg.RequestPauseExecution = false;
 
                 AfterOperationExecuted?.Invoke(this, arg);

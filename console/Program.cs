@@ -29,19 +29,18 @@ namespace console
             //Start vector for cpu (first absolute address of rom)
             bus.Write(0xFFFC, 0xC000);
             
-            //cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
+            cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
             
-            cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+            //cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
 
             cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
             cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
             cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);
-            
 
             var start = DateTime.Now;
             int runCount = 1;
             int i = 0;
-            long cycles = 0;
+            ulong cycles = 0;
 
             while (i++ < runCount)
             {
@@ -59,6 +58,9 @@ namespace console
 
         private static void Cpu_AfterOperationExecuted(Cpu cpu, OpcodeEventArgs e)
         {
+            var bb = e.Full.ToString(cpu.GetValue(e.Full)).PadRight(40);
+            var str = ($"{bb} A:{cpu.A:X2} X:{cpu.X:X2} Y:{cpu.Y:X2} P:{cpu.Status.Value:X2} SP:{cpu.SP:X2} Cycles: {e.ElapsedCycles}");
+            Console.WriteLine(str);
         }
 
         private static void Cpu_BeforeOperationExecuted(Cpu cpu, OpcodeEventArgs e)
