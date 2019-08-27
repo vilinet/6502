@@ -31,7 +31,8 @@ namespace emulator6502
             for(int i=0;i<256;i++)
             {
                 var op = opcodes[i];
-                if (op.Enum == opcodeEnum && mode == op.Mode) return op;
+                
+                if (op!=null && op.Enum == opcodeEnum && mode == op.Mode) return op;
             }
 
             return null;
@@ -49,7 +50,7 @@ namespace emulator6502
             for (int i = 0; i < 256; i++)
             {
                 var op = opcodes[i];
-                if (op.Enum == opcodeEnum) return op;
+                if (op != null &&  op.Enum == opcodeEnum) return op;
             }
 
             return null;
@@ -58,7 +59,6 @@ namespace emulator6502
         static Opcodes()
         {
             #region LOAD
-
             Insert(new Opcode(0xA9, OpcodeEnum.LDA, BindingMode.Immediate, 2));
             Insert(new Opcode(0xA5, OpcodeEnum.LDA, BindingMode.ZeroPage, 3));
             Insert(new Opcode(0xB5, OpcodeEnum.LDA, BindingMode.ZeroPageX, 4));
@@ -107,7 +107,6 @@ namespace emulator6502
             Insert(new Opcode(0x38, OpcodeEnum.SEC, BindingMode.Implied, 2));
             Insert(new Opcode(0x78, OpcodeEnum.SEI, BindingMode.Implied, 2));
             Insert(new Opcode(0xF8, OpcodeEnum.SED, BindingMode.Implied, 2));
-
             Insert(new Opcode(0x18, OpcodeEnum.CLC, BindingMode.Implied, 2));
             Insert(new Opcode(0xD8, OpcodeEnum.CLD, BindingMode.Implied, 2));
             Insert(new Opcode(0x58, OpcodeEnum.CLI, BindingMode.Implied, 2));
@@ -150,7 +149,7 @@ namespace emulator6502
             #region DEC             
             Insert(new Opcode(0xC6, OpcodeEnum.DEC, BindingMode.ZeroPage, 5));
             Insert(new Opcode(0xD6, OpcodeEnum.DEC, BindingMode.ZeroPageX, 6));
-            Insert(new Opcode(0xCE, OpcodeEnum.DEC, BindingMode.Absolute, 3));
+            Insert(new Opcode(0xCE, OpcodeEnum.DEC, BindingMode.Absolute, 6));
             Insert(new Opcode(0xDE, OpcodeEnum.DEC, BindingMode.AbsoluteX, 7));
 
             Insert(new Opcode(0xCA, OpcodeEnum.DEX, BindingMode.Implied, 2));
@@ -205,7 +204,7 @@ namespace emulator6502
             Insert(new Opcode(0x20, OpcodeEnum.JSR, BindingMode.Absolute, 6));
 
             Insert(new Opcode(0x4C, OpcodeEnum.JMP, BindingMode.Absolute, 3));
-            Insert(new Opcode(0x6C, OpcodeEnum.JMP, BindingMode.Indirect, 3));
+            Insert(new Opcode(0x6C, OpcodeEnum.JMP, BindingMode.Indirect, 5));
 
             #endregion
 
@@ -218,7 +217,7 @@ namespace emulator6502
 
             #region BIT OPERATIONS 
             Insert(new Opcode(0x24, OpcodeEnum.BIT, BindingMode.ZeroPage, 3));
-            Insert(new Opcode(0x2C, OpcodeEnum.BIT, BindingMode.Absolute, 3));
+            Insert(new Opcode(0x2C, OpcodeEnum.BIT, BindingMode.Absolute, 4));
 
             Insert(new Opcode(0x29, OpcodeEnum.AND, BindingMode.Immediate, 2));
             Insert(new Opcode(0x25, OpcodeEnum.AND, BindingMode.ZeroPage, 3));
@@ -234,9 +233,6 @@ namespace emulator6502
             Insert(new Opcode(0x16, OpcodeEnum.ASL, BindingMode.ZeroPageX, 6));
             Insert(new Opcode(0x0E, OpcodeEnum.ASL, BindingMode.Absolute, 6));
             Insert(new Opcode(0x1E, OpcodeEnum.ASL, BindingMode.AbsoluteX, 7));
-            
-            
-
 
             Insert(new Opcode(0x4A, OpcodeEnum.LSR, BindingMode.Implied, 2));
             Insert(new Opcode(0x46, OpcodeEnum.LSR, BindingMode.ZeroPage, 5));
@@ -283,6 +279,9 @@ namespace emulator6502
             Insert(new Opcode(0x61, OpcodeEnum.ADC, BindingMode.IndexedIndirect, 6));
             Insert(new Opcode(0x71, OpcodeEnum.ADC, BindingMode.IndirectIndexed, 5));
 
+
+            Insert(new Opcode(0xEB, OpcodeEnum.SBC, BindingMode.Immediate, 2)); //unoffical
+
             Insert(new Opcode(0xE9, OpcodeEnum.SBC, BindingMode.Immediate, 2));
             Insert(new Opcode(0xE5, OpcodeEnum.SBC, BindingMode.ZeroPage, 3));
             Insert(new Opcode(0xF5, OpcodeEnum.SBC, BindingMode.ZeroPageX, 4));
@@ -291,10 +290,8 @@ namespace emulator6502
             Insert(new Opcode(0xF9, OpcodeEnum.SBC, BindingMode.AbsoluteY, 4));
             Insert(new Opcode(0xE1, OpcodeEnum.SBC, BindingMode.IndexedIndirect, 6));
             Insert(new Opcode(0xF1, OpcodeEnum.SBC, BindingMode.IndirectIndexed, 5));
-            
-            Insert(new Opcode(0xEB, OpcodeEnum.SBC, BindingMode.Immediate, 2));
-            
-            
+            #endregion
+            #region Unoffical
             Insert(new Opcode(0xCF, OpcodeEnum.DCP, BindingMode.Absolute, 6));
             Insert(new Opcode(0xDF, OpcodeEnum.DCP, BindingMode.AbsoluteX, 7));
             Insert(new Opcode(0xDB, OpcodeEnum.DCP, BindingMode.AbsoluteY, 7));
@@ -358,7 +355,6 @@ namespace emulator6502
             Insert(new Opcode(0x87, OpcodeEnum.SAX, BindingMode.ZeroPage, 3));
             Insert(new Opcode(0x8F, OpcodeEnum.SAX, BindingMode.Absolute, 4));
             Insert(new Opcode(0x97, OpcodeEnum.SAX, BindingMode.ZeroPageY, 4));
-
             #endregion
 
             #region Branches       

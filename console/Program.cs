@@ -21,32 +21,35 @@ namespace console
 
             rom.LoadBinaryProgram( File.ReadAllBytes( @"C:\code\6502\nestest.nes")[0x0010 .. 0x4000], 0x0);
             bus.AddMap(0x0, ram);
-            bus.AddMap(0x4000,  new Ram(0x4000) );
+            bus.AddMap(0x4000,  new Ram(0x4000));
             bus.AddMap(0x8000,  rom);
             bus.AddMap(0xC000,  rom);
 
+
             //Start vector for cpu (first absolute address of rom)
             bus.Write(0xFFFC, 0xC000);
-
+            
             //cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
+            
+            cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
 
-
-            /*cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
             cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
-            cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);*/
-
-
-            //cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+            cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
+            cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);
+            
 
             var start = DateTime.Now;
-            int runCount = 1750;
+            int runCount = 1;
             int i = 0;
             long cycles = 0;
 
             while (i++ < runCount)
             {
                 cpu.Reset();
-                cpu.Run();
+                while (cpu.Clock())
+                {
+                    
+                }
                 cycles += cpu.Cycles;
             }
 

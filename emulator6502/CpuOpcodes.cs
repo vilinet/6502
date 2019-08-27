@@ -83,7 +83,7 @@ namespace emulator6502
         {
             return (ushort)((_cpu.Bus.Read((ushort)(address + 1)) << 8) + _cpu.Bus.Read(address));
         }
-        
+
         private ushort ReadIndirectWord(byte address)
         {
             return (ushort)((_cpu.Bus.Read((byte)(address + 1)) << 8) + _cpu.Bus.Read(address));
@@ -94,7 +94,7 @@ namespace emulator6502
             switch (mode)
             {
                 case BindingMode.ZeroPage:
-                    return  (byte)param ;
+                    return (byte)param;
 
                 case BindingMode.ZeroPageX:
                     return (byte)(param + _cpu.X);
@@ -103,8 +103,8 @@ namespace emulator6502
                     return (byte)(param + _cpu.Y);
 
                 case BindingMode.Indirect:
-                    var eahelp2 = (ushort) ((param & 0xFF00) | ((param + 1) & 0x00FF));	//replicate 6502 page-boundary wraparound bug
-                    return  (ushort) (_cpu.Bus.Read(param) | (_cpu.Bus.Read(eahelp2) << 8));
+                    var eahelp2 = (ushort)((param & 0xFF00) | ((param + 1) & 0x00FF));	//replicate 6502 page-boundary wraparound bug
+                    return (ushort)(_cpu.Bus.Read(param) | (_cpu.Bus.Read(eahelp2) << 8));
 
                 case BindingMode.IndexedIndirect:
                     return ReadIndirectWord((byte)(_cpu.X + param));
@@ -120,9 +120,9 @@ namespace emulator6502
 
                 case BindingMode.AbsoluteY:
                     return (ushort)(param + _cpu.Y);
-                
+
                 case BindingMode.Relative:
-                    if (param < 128) return (ushort) (_cpu.PC + param);
+                    if (param < 128) return (ushort)(_cpu.PC + param);
                     else return (ushort)(_cpu.PC - (ushort)((((byte)param) ^ 0xFF) + 1));
 
                 default:
@@ -134,8 +134,16 @@ namespace emulator6502
         {
             if (condition)
             {
-                if (relative < 128) _cpu.PC += relative;
-                else _cpu.PC -= (ushort)((((byte)relative) ^ 0xFF) + 1);
+                ushort newAddress;
+                if (relative < 128) newAddress = (ushort)(_cpu.PC + relative);
+                else newAddress = (ushort)(_cpu.PC - ((ushort)((((byte)relative) ^ 0xFF) + 1)));
+
+                _cpu.Cycles += 1;
+
+                if((newAddress&0xFF00)!=(_cpu.PC&0xFF00))
+                {
+                    _cpu.Cycles += 2;
+                }
             }
         }
 
@@ -151,7 +159,16 @@ namespace emulator6502
             if (mode == BindingMode.Implied) return _cpu.A;
             return _cpu.Bus.Read(GetAddress(param, mode));
         }
-        
+
+        public byte GetValue(ushort param, BindingMode mode, out ushort address)
+        {
+            address = 0;
+            if (mode == BindingMode.Immediate) return (byte)param;
+            if (mode == BindingMode.Implied) return _cpu.A;
+            address = GetAddress(param, mode);
+            return _cpu.Bus.Read(address);
+        }
+
         private void SetNegativeFlag(byte val)
         {
             _cpu.Status.Negative = (val & 0x80) == 0x80;
@@ -164,7 +181,7 @@ namespace emulator6502
         }
 
         #endregion
-        
+
         private void AdcCore(byte value)
         {
             var result = (byte)(((byte)(_cpu.A + value)) + (byte)(_cpu.Status.Carry ? 1 : 0));
@@ -177,84 +194,88 @@ namespace emulator6502
 
             SetNegativeAndZeroFlag(result);
         }
-        
-        private void Dcp(ushort param, BindingMode  mode)
+
+        private void Dcp(ushort param, BindingMode mode)
         {
             ushort address = GetAddress(param, mode);
-            var val = (byte)(_cpu.Bus.Read(address) -1);
-            _cpu.Bus.Write(address, (byte)(val));
+            var val = (byte)(_cpu.Bus.Read(address) - 1);
+            _cpu.Bus.Write(address, val);
             Cmp(val, BindingMode.Immediate);
         }
-        
-        private void Isb(ushort param, BindingMode  mode)
+
+        private void Isb(ushort param, BindingMode mode)
         {
             ushort address = GetAddress(param, mode);
             var val = (byte)(_cpu.Bus.Read(address) + 1);
             _cpu.Bus.Write(address, (byte)(val));
             Sbc(val, BindingMode.Immediate);
         }
-        
-        
-        private void Lax(ushort param, BindingMode  mode)
+
+
+        private void Lax(ushort param, BindingMode mode)
         {
             Lda(param, mode);
             Ldx(param, mode);
         }
-        
-        private void Sax(ushort param, BindingMode  mode)
+
+        private void Sax(ushort param, BindingMode mode)
         {
             Sta(param, mode);
             Stx(param, mode);
-            _cpu.Bus.Write( GetAddress(param, mode),  (byte) (_cpu.A & _cpu.X));
+            _cpu.Bus.Write(GetAddress(param, mode), (byte)(_cpu.A & _cpu.X));
         }
 
         private void Adc(ushort param, BindingMode mode)
         {
-      
-            AdcCore(GetValue(param, mode));
+            AdcCore(GetValue(param, mode, out ushort address));
+            BoundaryCyles(address, mode);
         }
 
         private void Sbc(ushort param, BindingMode mode)
         {
-            AdcCore((byte)~GetValue(param, mode));
+            AdcCore((byte)~GetValue(param, mode, out ushort address));
+            BoundaryCyles(address, mode);
         }
 
         private void Ldx(ushort param, BindingMode mode)
         {
-            _cpu.X = GetValue(param, mode);
+            _cpu.X = GetValue(param, mode, out ushort address);
             SetNegativeAndZeroFlag(_cpu.X);
+            BoundaryCyles(address, mode);
         }
 
         private void Ora(ushort param, BindingMode mode)
         {
-            _cpu.A |= GetValue(param, mode);
+            _cpu.A |= GetValue(param, mode, out ushort address);
             SetNegativeAndZeroFlag(_cpu.A);
+            BoundaryCyles(address, mode);
         }
 
         private void Eor(ushort param, BindingMode mode)
         {
-            _cpu.A ^= GetValue(param, mode);
+            _cpu.A ^= GetValue(param, mode, out ushort address);
             SetNegativeAndZeroFlag(_cpu.A);
+            BoundaryCyles(address, mode);
         }
-        
-        private void Slo(ushort param, BindingMode  mode)
+
+        private void Slo(ushort param, BindingMode mode)
         {
             Asl(param, mode);
             Ora(param, mode);
         }
-        private void Rla(ushort param, BindingMode  mode)
+        private void Rla(ushort param, BindingMode mode)
         {
             Rol(param, mode);
             And(param, mode);
         }
-        
-        private void Sre(ushort param, BindingMode  mode)
+
+        private void Sre(ushort param, BindingMode mode)
         {
             Lsr(param, mode);
             Eor(param, mode);
         }
-        
-        private void Rra(ushort param, BindingMode  mode)
+
+        private void Rra(ushort param, BindingMode mode)
         {
             Ror(param, mode);
             Adc(param, mode);
@@ -327,14 +348,16 @@ namespace emulator6502
 
         private void Ldy(ushort val, BindingMode mode)
         {
-            _cpu.Y = GetValue(val, mode);
+            _cpu.Y = GetValue(val, mode, out ushort address);
             SetNegativeAndZeroFlag(_cpu.Y);
+            BoundaryCyles(address, mode);
         }
 
         private void Lda(ushort val, BindingMode mode)
         {
-            _cpu.A = GetValue(val, mode);
+            _cpu.A = GetValue(val, mode, out ushort address);
             SetNegativeAndZeroFlag(_cpu.A);
+            BoundaryCyles(address, mode);
         }
 
         private void Sta(ushort val, BindingMode mode)
@@ -371,7 +394,7 @@ namespace emulator6502
         {
             byte f = Pop();
             byte s = Pop();
-            return (ushort)((s<<8) + f);
+            return (ushort)((s << 8) + f);
         }
 
         private void Jmp(ushort param, BindingMode mode)
@@ -427,7 +450,8 @@ namespace emulator6502
 
         private void Cmp(ushort value, BindingMode mode)
         {
-            Cmp(_cpu.A, GetValue(value, mode));
+            Cmp(_cpu.A, GetValue(value, mode, out ushort address));
+            BoundaryCyles(address, mode);
         }
 
         private void Cmp(byte regValue, byte value)
@@ -464,7 +488,7 @@ namespace emulator6502
             _cpu.Status.InterruptDisable = (val & 0b00000100) > 0;
             _cpu.Status.DecimalMode = (val & 0b00001000) > 0;
             _cpu.Status.BreakInterrupt = false;
-            
+
             _cpu.Status.Overflow = (val & 0b01000000) > 0;
             _cpu.Status.Negative = (val & 0b10000000) > 0;
         }
@@ -477,8 +501,9 @@ namespace emulator6502
 
         private void And(ushort param, BindingMode mode)
         {
-            _cpu.A &= GetValue(param, mode);
+            _cpu.A &= GetValue(param, mode, out ushort address);
             SetNegativeAndZeroFlag(_cpu.A);
+            BoundaryCyles(address, mode);
         }
 
         private void Dex(ushort param, BindingMode mode)
@@ -493,7 +518,6 @@ namespace emulator6502
             SetNegativeAndZeroFlag(_cpu.Y);
         }
 
-  
         private void Bcc(ushort param, BindingMode mode)
         {
             JumpRelativeLocation(!_cpu.Status.Carry, param);
@@ -548,12 +572,12 @@ namespace emulator6502
 
         private void Rts(ushort param, BindingMode mode)
         {
-            _cpu.PC = (ushort)(PopWord() + 1 );
+            _cpu.PC = (ushort)(PopWord() + 1);
         }
 
         private void Jsr(ushort param, BindingMode mode)
         {
-            PushPc((ushort)(_cpu.PC-1));
+            PushPc((ushort)(_cpu.PC - 1));
             _cpu.PC = param;
         }
 
@@ -628,6 +652,18 @@ namespace emulator6502
             SetNegativeAndZeroFlag(_cpu.A);
         }
 
+        
+        private void BoundaryCyles(ushort address,  BindingMode mode)
+        {
+            if(mode  == BindingMode.AbsoluteX || mode == BindingMode.AbsoluteY || mode == BindingMode.IndirectIndexed)
+            {
+                if((0xFF00&_cpu.PC) != (address & 0xFF00))
+                {
+                    _cpu.Cycles++;
+                }
+            }
+        }
+
         internal void Irq()
         {
             if (!_cpu.Status.InterruptDisable)
@@ -640,15 +676,15 @@ namespace emulator6502
                 _cpu.Cycles += 7;
             }
         }
-        
+
         internal void Nmi()
         {
-                PushPc(_cpu.PC);
-                _cpu.Status.BreakInterrupt = false;
-                _cpu.Status.InterruptDisable = true;
-                Push(_cpu.Status.Value);
-                _cpu.PC = ReadWord(0xFFFA);
-                _cpu.Cycles += 7;
+            PushPc(_cpu.PC);
+            _cpu.Status.BreakInterrupt = false;
+            _cpu.Status.InterruptDisable = true;
+            Push(_cpu.Status.Value);
+            _cpu.PC = ReadWord(0xFFFA);
+            _cpu.Cycles += 7;
         }
     }
 }
