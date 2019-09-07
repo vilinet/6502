@@ -16,8 +16,6 @@ namespace console
         
         static void Main(string[] args)
         {
-            //   var ram = new Ram(0x0800);
-            // var rom = new Rom(0x4000);
             var display = new SFMLDisplay(256,240);
             nes = new Nes(display, "./nestest.nes");
             
