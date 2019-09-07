@@ -30,7 +30,7 @@ namespace NES.Display
         
         public void DrawPixel(int x, int y, uint color)
         {
-            if(x>=nesWidth ||y >= nesHeight) return;
+            if(x>=nesWidth ||y >= nesHeight ||x<0 || y<0) throw  new Exception();
             int pos = (y * nesWidth + x)*4;
             _displayBuffer[pos] = (byte) ((color &    0x00FF0000) >> 16) ;
             _displayBuffer[pos+1] =  (byte) ((color & 0x0000FF00) >> 8) ;

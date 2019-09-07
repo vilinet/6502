@@ -41,9 +41,21 @@ namespace NES
         V
     }
 
-    [Flags]
-    public enum PPUMASK : byte
+    internal static class BitHelper
     {
+        internal static bool IsSet( this byte  value, int bit)
+        {
+            return (value & (1 << bit)) > 0;
+        }
+    }
+
+    
+    public class PPUMASK
+    {
+        public byte Value { get; internal  set; }
+        public bool ShowBackground => Value.IsSet(3);
+        public bool ShowSprites => Value.IsSet(4);
+/*
         Zero = 0,
         /// <summary>
         /// Grayscale
@@ -60,8 +72,8 @@ namespace NES
         /// <summary>
         ///  Show background
         /// </summary>
-        b,
-        s,
+        ShowBackground,
+        ShowSprites,
         /// <summary>
         ///  Emphasize red
         /// </summary>
@@ -73,7 +85,7 @@ namespace NES
         /// <summary>
         ///  Emphasize blue
         /// </summary>
-        B
+        B*/
     }
 
     [Flags]
@@ -83,15 +95,15 @@ namespace NES
         /// <summary>
         /// sprite overflow
         /// </summary>
-        O = 5,
+        O = 32,
         /// <summary>
         /// sprite 0 hit 
         /// </summary>
-        S = 61,
+        S = 64,
         /// <summary>
         /// VBLANK
         /// </summary>
-        V = 7
+        V = 128
     }
 
     /// <summary>
@@ -99,6 +111,8 @@ namespace NES
     /// </summary>
     public class PPURegisters
     {
+        
+        
         public PPUCTRL PPUCTRL { get; set; } = new PPUCTRL();
         public PPUMASK PPUMASK { get; set; } = new PPUMASK();
         public PPUSTATUS PPUSTATUS { get; set; } = new PPUSTATUS();

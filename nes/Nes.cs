@@ -30,17 +30,18 @@ namespace NES
         public Nes(IDisplay display, string filePath)
         {
             _display = display;
-            _ppu = new Ppu(_display);
             _cpuRam = new CpuRam();
             _cartridge = new Cartridge(0x8000, 0xBFFF);
 
             _bus = new Bus();
+            Cpu = new Cpu(_bus);
+            _ppu = new Ppu(Cpu, _display);
+            
             _bus.AddMap(_cpuRam);
             _bus.AddMap(_ppu);
             _bus.AddMap(_cartridge);
             _bus.AddMap(new Cartridge(0xC000, 0xFFFF, _cartridge));
-            Cpu = new Cpu(_bus);
-            
+
             _filePath = filePath;
             _ppu.PowerOn();
             

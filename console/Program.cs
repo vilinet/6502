@@ -1,10 +1,6 @@
 ﻿using emulator6502;
 using NES;
 using System;
-using System.ComponentModel;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using NES.Display;
 
 namespace console
@@ -19,7 +15,7 @@ namespace console
             var display = new SFMLDisplay(256,240);
             nes = new Nes(display, "./nestest.nes");
             
-            nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+            //nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
 
             nes.RunOnThread();
             
