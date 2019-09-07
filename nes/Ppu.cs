@@ -1,22 +1,34 @@
-﻿using emulator6502;
+﻿using System;
+using emulator6502;
+using NES.Display;
 
 namespace NES
 {
-
     public class Ppu : IAddressable
     {
         public ushort From { get; } = 0x2000;
         public ushort To { get; } = 0x2007;
+
+        public bool FrameFinished { get; internal set; }
+        public PPURegisters PPURegisters { get; } = new PPURegisters();
         
-        public bool FrameComplete { get; private  set; }
-        private short Cycle { get; set; }
-        private short Scanline { get; set; }
+        public short Cycle { get; internal set; }
+        public short Scanline { get; internal set; }
 
-        public PPURegisters PPURegisters { get; set; } = new PPURegisters();
-   
+        private readonly IDisplay _display;
 
+        private int color = 12;
+        
+        public Ppu(IDisplay display)
+        {
+            _display = display;
+        }
+        
         public void Clock()
         {
+            if (Scanline >= 0)
+                _display.DrawPixel(Cycle, Scanline, PpuColors.Colors[(color+++1)%64]);
+
             Cycle++;
             if (Cycle >= 341)
             {
@@ -25,7 +37,8 @@ namespace NES
                 if (Scanline >= 261)
                 {
                     Scanline = -1;
-                    FrameComplete = true;
+                    FrameFinished = true;
+                    _display.FrameFinished();
                 }
             }
         }
@@ -37,15 +50,15 @@ namespace NES
 
         public byte Read(ushort address)
         {
-            var result =  (address-0x2000) % 8;
+            var result = (address - 0x2000) % 8;
             switch (result)
             {
                 case 0:
-                    return (byte)PPURegisters.PPUCTRL;
+                    return (byte) PPURegisters.PPUCTRL;
                 case 1:
-                    return (byte)PPURegisters.PPUMASK;
+                    return (byte) PPURegisters.PPUMASK;
                 case 2:
-                    return (byte)PPURegisters.PPUSTATUS;
+                    return (byte) PPURegisters.PPUSTATUS;
                 case 3:
                     return PPURegisters.OEMADDR;
                 case 4:
@@ -63,9 +76,11 @@ namespace NES
 
         public void Reset()
         {
+            Cycle = 0;
+            Scanline = -1;
             PPURegisters.PPUCTRL = 0;
-            PPURegisters.PPUMASK = (PPUMASK)((byte)PPURegisters.PPUMASK | 0b1000000);
-            PPURegisters.PPUSTATUS = (PPUSTATUS)(0b10111111 & (byte)PPURegisters.PPUSTATUS);
+            PPURegisters.PPUMASK = (PPUMASK) ((byte) PPURegisters.PPUMASK | 0b1000000);
+            PPURegisters.PPUSTATUS = (PPUSTATUS) (0b10111111 & (byte) PPURegisters.PPUSTATUS);
             PPURegisters.OEMADDR = 0;
             PPURegisters.OAMDATA = 0;
             PPURegisters.PPUSCROLL = 0;
@@ -73,15 +88,15 @@ namespace NES
         }
 
         public void PowerOn()
-        {
+        {   Cycle = 0;
+            Scanline = -1;
             PPURegisters.PPUCTRL = 0;
             PPURegisters.PPUMASK = 0;
-            PPURegisters.PPUSTATUS = (PPUSTATUS)(0b10111111 & (byte)PPURegisters.PPUSTATUS);
+            PPURegisters.PPUSTATUS = (PPUSTATUS) (0b10111111 & (byte) PPURegisters.PPUSTATUS);
             PPURegisters.OEMADDR = 0;
             PPURegisters.OAMDATA = 0;
             PPURegisters.PPUSCROLL = 0;
             PPURegisters.PPUADDR = 0;
         }
-      
     }
 }
