@@ -7,7 +7,7 @@ namespace emulator6502
 
     public class Cpu
     {
-        private readonly Opcodes opcodes;
+        public readonly Opcodes Opcodes;
         private readonly CpuOperations operations;
         internal readonly IAddressable Bus;
 
@@ -31,13 +31,12 @@ namespace emulator6502
             operations.Nmi();
         }
 
-
         public event OpCodeEventHandler BeforeOperationExecuted;
         public event OpCodeEventHandler AfterOperationExecuted;
 
         public Cpu(IAddressable bus)
         {
-            opcodes = new Opcodes();
+            Opcodes = new Opcodes();
             operations = new CpuOperations(this);
             Bus = bus;
         }
@@ -49,14 +48,13 @@ namespace emulator6502
             Cycles = 8;
             SP = 0xFF;
             Status.Reset();
-
         }
 
         public bool Clock()
         {
             ushort prevPC = PC;
             ulong cycles = Cycles;
-            var entry = opcodes[Bus.Read(PC++)];
+            var entry = Opcodes[Bus.Read(PC++)];
             if (entry.Enum == OpcodeEnum.BRK) return false;
 
             ushort parameter = 0;
@@ -69,7 +67,6 @@ namespace emulator6502
             {
                 PC = prevPC;
             }
-
 
             return true;
         }
@@ -96,12 +93,12 @@ namespace emulator6502
 
         public void Execute(OpcodeEnum opcodeEnum, BindingMode mode, ushort parameter = 0)
         {
-            InnerExecute(opcodes.Get(opcodeEnum, mode), parameter, 0, 0);
+            InnerExecute(Opcodes.Get(opcodeEnum, mode), parameter, 0, 0);
         }
 
         public void Execute(OpcodeEnum opcodeEnum, ushort parameter = 0)
         {
-            InnerExecute(opcodes.Get(opcodeEnum), parameter, 0, 0);
+            InnerExecute(Opcodes.Get(opcodeEnum), parameter, 0, 0);
         }
 
         public void Execute(Opcode opcode, ushort parameter = 0)

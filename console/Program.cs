@@ -1,58 +1,30 @@
 ﻿using emulator6502;
+using NES;
 using System;
+using System.ComponentModel;
 using System.IO;
 
 namespace console
 {
-    public class PPU : Addressable
-    {
-        public PPU(ushort size) : base(size) { }
-    }
     
     static class Program
     {
         static void Main(string[] args)
         {
-            var ram = new Ram(0x0800);
-            var rom = new Rom(0x4000);
+            //   var ram = new Ram(0x0800);
+            // var rom = new Rom(0x4000);
 
-            var bus = new Bus();
-            var cpu = new Cpu(bus);
-
-            rom.LoadBinaryProgram( File.ReadAllBytes( @"C:\code\6502\nestest.nes")[0x0010 .. 0x4000], 0x0);
-            bus.AddMap(0x0, ram);
-            bus.AddMap(0x4000,  new Ram(0x4000));
-            bus.AddMap(0x8000,  rom);
-            bus.AddMap(0xC000,  rom);
+            var nes = new Nes("./nestest.nes");
 
 
-            //Start vector for cpu (first absolute address of rom)
-            bus.Write(0xFFFC, 0xC000);
-            
-            cpu.AfterOperationExecuted += Cpu_AfterOperationExecuted;
-            
-            //cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
-
-            cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
-            cpu.Execute(OpcodeEnum.PHA, BindingMode.Implied);
-            cpu.Execute(OpcodeEnum.SEI, BindingMode.Implied);
-
-            var start = DateTime.Now;
-            int runCount = 1;
-            int i = 0;
-            ulong cycles = 0;
-
-            while (i++ < runCount)
+            nes.PowerOn();
+            try
             {
-                cpu.Reset();
-                while (cpu.Clock())
-                {
-                    
-                }
-                cycles += cpu.Cycles;
-            }
+                File.Delete("c:/tmp/ki.log");
+            }catch{}
 
-            Console.WriteLine($"Finished: {runCount} runs,  {(DateTime.Now - start).TotalMilliseconds} milliseconds, cycles: {cycles}");
+            nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
+            while (true) nes.Clock();
 
         }
 
@@ -60,13 +32,15 @@ namespace console
         {
             var bb = e.Full.ToString(cpu.GetValue(e.Full)).PadRight(40);
             var str = ($"{bb} A:{cpu.A:X2} X:{cpu.X:X2} Y:{cpu.Y:X2} P:{cpu.Status.Value:X2} SP:{cpu.SP:X2} Cycles: {e.ElapsedCycles}");
+            File.AppendAllText("c:/tmp/ki.log", str + "\n");
             Console.WriteLine(str);
         }
 
         private static void Cpu_BeforeOperationExecuted(Cpu cpu, OpcodeEventArgs e)
         {
             var bb = e.Full.ToString(cpu.GetValue(e.Full)).PadRight(40);
-            var str = ( $"{bb} A:{cpu.A:X2} X:{cpu.X:X2} Y:{cpu.Y:X2} P:{cpu.Status.Value:X2} SP:{cpu.SP:X2} ");
+            var str = ($"{bb} A:{cpu.A:X2} X:{cpu.X:X2} Y:{cpu.Y:X2} P:{cpu.Status.Value:X2} SP:{cpu.SP:X2} Cycles: {e.ElapsedCycles}");
+            //File.AppendAllText("c:/tmp/ki.log", str + "\n");
             Console.WriteLine(str);
         }
     }

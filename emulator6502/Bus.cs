@@ -2,24 +2,15 @@
 {
     public class Bus : IAddressable
     {
-        private class Entry
-        {
-            public ushort From;
-            public ushort To;
-            public IAddressable Addressable;
-
-            public override string ToString()
-            {
-                return From.ToString("X4") + "-" + To.ToString("X4");
-            }
-        }
-
-        private Entry[] _entriesArray = new Entry[30];
-        private int _entriesCount = 0;
+        public ushort From { get; } = 0;
+        public ushort To { get; } = 0xFFFF;
         
-        public void AddMap(ushort from, Addressable addressable)
+        private readonly IAddressable[] _entriesArray = new IAddressable[30];
+        private int _entriesCount;
+        
+        public void AddMap(IAddressable addressable)
         {
-            _entriesArray[_entriesCount++] = new Entry { From = from, To = (ushort)(from + addressable.Size - 1), Addressable = addressable };
+            _entriesArray[_entriesCount++] = addressable;
         }
 
         public void Write(ushort address, byte value)
@@ -30,7 +21,7 @@
 
                 if (address >= entry.From && address <= entry.To)
                 {
-                    entry.Addressable.Write((ushort)(address - entry.From), value);
+                    entry.Write(address, value);
                 }
             }
         }
@@ -42,7 +33,7 @@
                 var entry = _entriesArray[i];
                 if (address >= entry.From && address <= entry.To)
                 {
-                    return entry.Addressable.Read((ushort)(address - entry.From));
+                    return entry.Read(address);
                 }
             }
             return 0;

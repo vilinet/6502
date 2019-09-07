@@ -4,7 +4,7 @@
     {
         public bool Carry { get; internal set; }
         public bool Zero { get; internal  set; }
-        public bool InterruptDisable { get; internal  set; }
+        public bool InterruptDisable { get; internal set; } 
         public bool DecimalMode { get; internal  set; }
         public bool BreakInterrupt { get; internal  set; }
         public bool NonUsed { get; set; } = true;

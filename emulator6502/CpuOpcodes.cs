@@ -144,6 +144,8 @@ namespace emulator6502
                 {
                     _cpu.Cycles += 2;
                 }
+
+                _cpu.PC = newAddress;
             }
         }
 
