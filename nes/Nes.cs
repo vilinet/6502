@@ -42,8 +42,10 @@ namespace NES
             Cpu = new Cpu(_bus);
             
             _filePath = filePath;
+            _ppu.PowerOn();
             
-            _ppu.PowerOn(); ;
+            LoadCartridge();
+            Cpu.Reset();
         }
 
         public void Reset()
@@ -129,14 +131,15 @@ namespace NES
 
         public void Clock()
         {
-            _internalClock++;
             _ppu.Clock();
            
             if (_internalClock % 3 == 0)
             {
                 Cpu.Clock();
+                _internalClock = 0;
             }
             
+            _internalClock++;
         }
 
 

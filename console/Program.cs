@@ -20,22 +20,15 @@ namespace console
             // var rom = new Rom(0x4000);
             var display = new SFMLDisplay(256,240);
             nes = new Nes(display, "./nestest.nes");
-
+            
+            nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
 
             nes.RunOnThread();
-            int counter = 0;
+            
             while (display.Window.IsOpen)
             {
                 display.DispatchEvents();
                 display.Render();
-                counter++;
-                if (counter == 1000000)
-                {
-                    if(nes.State == NesState.Paused) nes.Reset();
-                    else nes.Pause();
-                    counter = 0;
-
-                }
             }
         }
 

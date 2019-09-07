@@ -58,7 +58,9 @@ namespace NES
                 case 1:
                     return (byte) PPURegisters.PPUMASK;
                 case 2:
-                    return (byte) PPURegisters.PPUSTATUS;
+                    var value = (byte) PPURegisters.PPUSTATUS;
+                    PPURegisters.PPUSTATUS &= (PPUSTATUS)(((byte)PPURegisters.PPUSTATUS) & (0xFF & (byte)PPUSTATUS.V));
+                    return value;
                 case 3:
                     return PPURegisters.OEMADDR;
                 case 4:
