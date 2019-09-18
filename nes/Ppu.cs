@@ -16,11 +16,16 @@ namespace NES
         
         private const int PALETTE_BG = 0x3F00;
         private const int PALETTE_SPRITE = 0x3F10;
+        
+        private const int NAMETABLE_TILES = 0X2000;
+        private const int NAMETABLE_FULL_LENGTH = 0X400;
+        private const int NAMETABLE_ONLY_LENGTH = 0X3C0;
+        private const int NAMETABLE_ATTRIBUTES = 0X23C0;
 
         private byte[] _memory = new byte[0x4000];
         private int[] _oamOnScanline = new int[8];
         private int _oamOnScanlineCount = 0;
-        private ushort _actualPaletteAddress = 0;
+        private ushort _actualWriteAddress = 0;
         private bool _addressFull = false;
 
         private OAM [] Oams = new OAM[64];
@@ -159,31 +164,9 @@ namespace NES
             public byte X { get; set; }
         }
 
-        private void PrintSpritePalette()
-        {
-            for (int i = 0; i < 4; i++)
-            {
-                Console.WriteLine($"{i}:");
-                for (int j = 0; j < 4; j++)
-                {
-                    Console.Write(_memory[PALETTE_SPRITE+i*4+j].ToString("x2")+" ");    
-                }
-
-                Console.WriteLine();
-                
-                for (int j = 0; j < 4; j++)
-                {
-                    Console.Write(PpuColors.Colors[_memory[PALETTE_SPRITE+i*4+j]].ToString("x6")+" ");    
-                }
-
-                Console.WriteLine();
-            }
-
-            Console.WriteLine();
-        }
-
         private void UpdateOamOnScanlines()
         {
+            if(Scanline>240) return;
             _oamOnScanlineCount = 0;
 
             int y = Scanline;
@@ -196,8 +179,38 @@ namespace NES
                 }
             }
 
-
             for (int i = 0; i < 256; i++)  scanLineColors[i] = 0;
+
+            var bgY = y >> 3;
+            var index = NAMETABLE_TILES +bgY*32;
+            int actualBgY = (Scanline % 8);
+            int bgX = 0;
+            for (int i = 0; i < 32; i++)
+            {
+                var spriteIndex =  _memory[index];
+                var memIndex = spriteIndex * 16 + actualBgY + 0x1000;
+
+                int value1 = _memory[memIndex];
+                int value2 = _memory[memIndex + 8];
+                
+                for (int x = 0; x < 8; x++)
+                {
+                    var bit = 7 - x;
+                    
+                    var palette = ((value2 & (1 << bit))!=0?2:0) + ((value1 & (1 << bit)) >> bit);
+
+                    if (palette > 0)
+                    {
+                        scanLineColors[bgX] = PpuColors.Colors[_memory[PALETTE_BG + palette] % 64];
+                    }
+                    bgX++;
+                }
+
+                
+
+                index++;
+            }
+
 
             for (int j = _oamOnScanlineCount - 1; j >= 0; j--)
             {
@@ -258,18 +271,22 @@ namespace NES
                     PPURegisters.PPUADDR = value;
                     if (!_addressFull)
                     {
-                        _actualPaletteAddress = value;
+                        _actualWriteAddress = value;
                         _addressFull = true;
                     }
                     else
                     {
-                        _actualPaletteAddress = (ushort) ((_actualPaletteAddress << 8) + value);
+                        _actualWriteAddress = (ushort) ((_actualWriteAddress << 8) + value);
+                        if (_actualWriteAddress == 0x2000)
+                        {
+                            
+                        }
                         _addressFull = false;
                     }
 
                     break;
                 case 7:
-                    _memory[_actualPaletteAddress++] = value;
+                    _memory[_actualWriteAddress++] = value;
                     break;
             }
         }
