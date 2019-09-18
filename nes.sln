@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "emulator6502", "emulator650
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES", "NES\NES.csproj", "{50491E80-A1EB-4E0A-8CA4-90EE929B832D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES.Interfaces", "NES.Interfaces\NES.Interfaces.csproj", "{9703F59E-9FC4-43A5-A273-43DC76CAD641}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES.Display.SFML", "NES.Display.SFML\NES.Display.SFML.csproj", "{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{50491E80-A1EB-4E0A-8CA4-90EE929B832D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{50491E80-A1EB-4E0A-8CA4-90EE929B832D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{50491E80-A1EB-4E0A-8CA4-90EE929B832D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9703F59E-9FC4-43A5-A273-43DC76CAD641}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9703F59E-9FC4-43A5-A273-43DC76CAD641}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9703F59E-9FC4-43A5-A273-43DC76CAD641}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9703F59E-9FC4-43A5-A273-43DC76CAD641}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

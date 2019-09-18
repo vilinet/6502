@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using emulator6502;
-using NES.Display;
+using NES.Interfaces;
+using NESInterfaces;
 
 namespace NES
 {
@@ -16,33 +16,35 @@ namespace NES
     public class Nes
     {
         private readonly Ppu _ppu;
-          
+        private readonly IController _controller1, _controller2;
         public NesState State { get; private set; }
         public Cpu Cpu { get; }
 
         private readonly Bus _bus;
         private readonly Cartridge _cartridge;
       
-        private long _internalClock;
+        private int _internalClock;
         private readonly CpuRam _cpuRam;
         private string _filePath;
         private readonly IDisplay _display;
 
-        public Nes(IDisplay display, string filePath)
+        public Nes(IDisplay display, IController controller1, string filePath)
         {
+            _controller1 = controller1;
             _display = display;
             _cpuRam = new CpuRam();
             _cartridge = new Cartridge(0x8000, 0xBFFF);
-
             _bus = new Bus();
             Cpu = new Cpu(_bus);
             _ppu = new Ppu(Cpu, _bus, _display);
             
             _bus.AddMap(_cpuRam);
             _bus.AddMap(_ppu);
+            _bus.AddMap(new ControllerDevice(0x4016, controller1));
+            _bus.AddMap(new ControllerDevice(0x4017, _controller2));
+            _bus.AddMap(new OamDma(_ppu, _bus));
             _bus.AddMap(_cartridge);
             _bus.AddMap(new Cartridge(0xC000, 0xFFFF, _cartridge));
-            _bus.AddMap(new OamDma(_ppu, _bus));
 
             _filePath = filePath;
             _ppu.PowerOn();
@@ -67,7 +69,6 @@ namespace NES
                     
                 }
             }
-            
         }
 
         public void Reset()
@@ -88,7 +89,6 @@ namespace NES
             if (State == NesState.Paused)
                 State = NesState.Running;
         }
-        
 
         private void Run()
         {
@@ -98,25 +98,35 @@ namespace NES
             }
             State = NesState.Running;
             
-            const double frameTime = 1f/60f;
+            const double frameTime = 1f/60;
             double elapsedTime = frameTime;
             DateTime prev = DateTime.Now;
             
-            while (State!=NesState.Stopped)
+            while (State != NesState.Stopped)
             {
-                if (elapsedTime >= frameTime)
-                {
-                    if (State == NesState.Running)
-                    {
-                        while (!_ppu.FrameFinished) Clock();
-                        _ppu.FrameFinished = false;
-                    }
+               if (elapsedTime >= frameTime)
+               { 
+                   if (State == NesState.Running) 
+                   {
+                       while (!_ppu.FrameFinished)
+                       {
+                           _ppu.Clock();
+                           if (_internalClock % 3 == 0)
+                           {
+                               Cpu.Clock();
+                               _internalClock = 0;
+                           }
+                           _internalClock++;
+                       }
 
-                    elapsedTime = 0;
-                }
-                elapsedTime += (DateTime.Now - prev).TotalSeconds;
-                prev  = DateTime.Now; 
-                Thread.Sleep(5);
+                       _ppu.FrameFinished = false;
+                   }
+                   
+                   elapsedTime = 0;
+               }
+               
+               elapsedTime += (DateTime.Now - prev).TotalSeconds;
+               prev  = DateTime.Now; 
             }
         }
 
@@ -161,19 +171,5 @@ namespace NES
                 }
             }
         }
-
-        private void Clock()
-        {
-            _ppu.Clock();
-           
-            if (_internalClock % 3 == 0)
-            {
-                Cpu.Clock();
-                _internalClock = 0;
-            }
-            
-            _internalClock++;
-        }
-
     }
 }

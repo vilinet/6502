@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\emulator6502\emulator6502.csproj" />
+    <ProjectReference Include="..\NES.Display.SFML\NES.Display.SFML.csproj" />
     <ProjectReference Include="..\NES\NES.csproj" />
   </ItemGroup>
 
