@@ -7,7 +7,7 @@ namespace NES.Display
 {
     public class SFMLDisplay : IDisplay
     {
-        private const int nesWidth = 256, nesHeight = 240; 
+        private const int NesWidth = 256, NesHeight = 240; 
         public RenderWindow Window { get; }
         //native nes display size
         private readonly Texture _displayTexture;
@@ -23,18 +23,18 @@ namespace NES.Display
                 Position = new Vector2i(505,500)
             };
             
-            _displayBuffer = new byte[nesWidth * nesHeight*4];
-            _displayTexture = new Texture(nesWidth,  nesHeight);
+            _displayBuffer = new byte[NesWidth * NesHeight * 4];
+            _displayTexture = new Texture(NesWidth,  NesHeight);
             _displaySprite = new Sprite(_displayTexture);
         }
         
         public void DrawPixel(int x, int y, uint color)
         {
-            if(x>=nesWidth ||y >= nesHeight ||x<0 || y<0) throw  new Exception();
-            int pos = (y * nesWidth + x)*4;
+            if (x >= NesWidth || y >= NesHeight || x < 0 || y < 0) return;
+            int pos = (y * NesWidth + x)*4;
             _displayBuffer[pos] = (byte) ((color &    0x00FF0000) >> 16) ;
             _displayBuffer[pos+1] =  (byte) ((color & 0x0000FF00) >> 8) ;
-            _displayBuffer[pos+2] = (byte) ((color &  0x000000FF) ) ;
+            _displayBuffer[pos+2] = (byte)  (color &  0x000000FF) ;
             _displayBuffer[pos+3] = 255;
         }
 
