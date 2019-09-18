@@ -8,31 +8,28 @@ namespace NES
 {
     public class Ppu : IAddressable
     {
-        private bool oddFrame = false;
         public ushort From { get; } = 0x2000;
         public ushort To { get; } = 0x2007;
 
         public bool FrameFinished { get; internal set; }
         public PpuRegisters PPURegisters { get; } = new PpuRegisters();
-
-
+        
         private const int PALETTE_BG = 0x3F00;
         private const int PALETTE_SPRITE = 0x3F10;
-        private const int OAM = 0x2000;
-
 
         private byte[] _memory = new byte[0x4000];
-        private byte[] _oam = new byte[256];
         private int[] _oamOnScanline = new int[8];
         private int _oamOnScanlineCount = 0;
         private ushort _actualPaletteAddress = 0;
         private bool _addressFull = false;
+
+        private OAM [] Oams = new OAM[64];
+        
         public short Cycle { get; internal set; }
         public short Scanline { get; internal set; }
 
         private readonly IDisplay _display;
 
-        private int color = 12;
         private readonly Cpu _cpu;
         private readonly Bus _bus;
 
@@ -41,17 +38,9 @@ namespace NES
             _display = display;
             _cpu = cpu;
             _bus = bus;
-            LoadPalette();
-        }
-
-        private void LoadPalette()
-        {
-            for (int i = 0; i < PpuColors.Colors.Length; i++)
+            for (int i = 0; i < 64; i++)
             {
-                uint col = PpuColors.Colors[i];
-                _memory[PALETTE_BG + i * 3] = (byte) ((0xFF0000 & col) >> 16);
-                _memory[PALETTE_BG + i * 3 + 1] = (byte) ((0x00FF00 & col) >> 8);
-                _memory[PALETTE_BG + i * 3 + 2] = (byte) ((0x0000FF & col));
+                Oams[i] = new OAM();
             }
         }
 
@@ -62,9 +51,28 @@ namespace NES
 
         private byte _currentHighTile, _currentLowTile, _tileShift;
 
+        
         public void WriteOAM(byte data)
         {
-            _oam[PPURegisters.OAMADDR++] = data;
+            int index = PPURegisters.OAMADDR >> 2;
+            int prop = PPURegisters.OAMADDR - (index << 2);
+            switch (prop)
+            {
+                case 0:
+                    Oams[index].Y = data;
+                    break;
+                case 1:
+                    Oams[index].SpriteIndex = data;
+                    break;
+                case 2:
+                    Oams[index].Attributes = data;
+                    break;
+                case 3:
+                    Oams[index].X = data;
+                    break;
+            }
+
+            PPURegisters.OAMADDR++;
         }
 
         private byte ReadByte(ushort address)
@@ -73,7 +81,6 @@ namespace NES
         }
 
         private uint[] scanLineColors = new uint[300];
-
 
         public void Clock()
         {
@@ -94,9 +101,7 @@ namespace NES
             {
                 if (Scanline != -1 && Scanline != 261)
                 {
-                    _display.DrawPixel(Cycle-1, Scanline, scanLineColors[Cycle-1 ]);
-                    //Visible tiles
-                    //_display.DrawPixel(Cycle - 1, Scanline, PpuColors.Colors[(color++ ) % 64]);
+                   _display.DrawPixel(Cycle-1, Scanline, scanLineColors[Cycle-1 ]);
                 }
             }
             else if (Cycle <= 320)
@@ -134,7 +139,6 @@ namespace NES
                 {
                     Scanline = -1;
                     FrameFinished = true;
-                    oddFrame = !oddFrame;
                     _display.FrameFinished();
                 }
                 else
@@ -147,45 +151,86 @@ namespace NES
             Cycle++;
         }
 
+        private class OAM
+        {
+            public byte Y { get; set; }
+            public byte SpriteIndex { get; set; }
+            public byte Attributes { get; set; }
+            public byte X { get; set; }
+        }
+
+        private void PrintSpritePalette()
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                Console.WriteLine($"{i}:");
+                for (int j = 0; j < 4; j++)
+                {
+                    Console.Write(_memory[PALETTE_SPRITE+i*4+j].ToString("x2")+" ");    
+                }
+
+                Console.WriteLine();
+                
+                for (int j = 0; j < 4; j++)
+                {
+                    Console.Write(PpuColors.Colors[_memory[PALETTE_SPRITE+i*4+j]].ToString("x6")+" ");    
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.WriteLine();
+        }
+
         private void UpdateOamOnScanlines()
         {
             _oamOnScanlineCount = 0;
-#if DEBUG
-            for (int i = 0; i < 8; i++) _oamOnScanline[i] = -1;
-#endif
+
             int y = Scanline;
-            for (int i = 0; i < _oam.Length && _oamOnScanlineCount < 8; i += 4)
+            
+            for (int i = 0; i < 64 && _oamOnScanlineCount < 8; i += 1)
             {
-                if (y >= _oam[i] && y < _oam[i] + 8)
+                if (Oams[i].Y>0 && Oams[i].Y<0xEF &&   y >= Oams[i].Y && y < Oams[i].Y + 8)
                 {
                     _oamOnScanline[_oamOnScanlineCount++] = i;
                 }
             }
 
-            for (int i = 0; i < 256; i++)
-            {
-                scanLineColors[i] = 0;
-            }
+
+            for (int i = 0; i < 256; i++)  scanLineColors[i] = 0;
 
             for (int j = _oamOnScanlineCount - 1; j >= 0; j--)
             {
-                var index = _oamOnScanline[j];
-                int actualLine = Scanline - _oam[index];
-                int sx = _oam[index + 3];
-
-                int tileIndex = _oam[index + 1] * 16 + actualLine;
-                int value1 = _memory[tileIndex];
-                int value2 = _memory[tileIndex + 8];
+                var oam = Oams[_oamOnScanline[j]];
+                
+                int paletteIndex = oam.Attributes & 0x3;
+                int paletteBase = paletteIndex * 4 +  PALETTE_SPRITE;
+                bool flipHor = (oam.Attributes & 0b01000000) != 0;
+                bool flipVer = (oam.Attributes & 0b10000000) != 0;
+                
+                int actualY = flipVer ? 7 - (Scanline - oam.Y):(Scanline - oam.Y);
+                
+                int yIndex = oam.SpriteIndex * 16 + actualY ;
+                if (PPURegisters.PPUCTRL.SpriteTileSelect) yIndex += 0x1000;
+                
+                int value1 = _memory[yIndex];
+                int value2 = _memory[yIndex + 8];
 
                 for (int x = 0; x < 8; x++)
                 {
-                    int bit = 7 - x;
-                    int palette = ((value1 & (1 << bit)) >> bit) + ((value2 & (1 << bit)) >> bit);
+                    var bit = 7 - x;
+                    if (flipHor) bit = x;
+                    
+                    var palette = ((value2 & (1 << bit))!=0?2:0) + ((value1 & (1 << bit)) >> bit);
 
                     if (palette > 0)
                     {
-                        _display.DrawPixel(sx+x, Scanline, PpuColors.Colors[_memory[PALETTE_SPRITE + palette] % 64]);
-                        scanLineColors[sx+x] = PpuColors.Colors[_memory[PALETTE_SPRITE + palette] % 64];
+                        var p = _memory[paletteBase + palette];
+                        if (p == 0x24)
+                        {
+                            Console.WriteLine("");
+                        }
+                        scanLineColors[oam.X + x] = PpuColors.Colors[_memory[paletteBase + palette] % 64];
                     }
                 }
             }

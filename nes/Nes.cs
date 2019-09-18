@@ -32,7 +32,7 @@ namespace NES
         {
             _display = display;
             _cpuRam = new CpuRam();
-            _cartridge = new Cartridge(0x8000, 0xFFFF);
+            _cartridge = new Cartridge(0x8000, 0xBFFF);
 
             _bus = new Bus();
             Cpu = new Cpu(_bus);
@@ -41,6 +41,7 @@ namespace NES
             _bus.AddMap(_cpuRam);
             _bus.AddMap(_ppu);
             _bus.AddMap(_cartridge);
+            _bus.AddMap(new Cartridge(0xC000, 0xFFFF, _cartridge));
             _bus.AddMap(new OamDma(_ppu, _bus));
 
             _filePath = filePath;
@@ -48,6 +49,25 @@ namespace NES
             
             LoadCartridge();
             Cpu.Reset();
+        }
+
+        public void LoadPalette(string file)
+        {
+            int colorIndex = 0;
+            using (var reader = new BinaryReader(new FileStream(file, FileMode.Open)))
+            {
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    var r = reader.ReadByte();
+                    var g = reader.ReadByte();
+                    var b = reader.ReadByte();
+                    PpuColors.Colors[colorIndex] = (uint)((r <<16) +( g << 8) + b);
+                    Console.WriteLine($"{colorIndex}:" + PpuColors.Colors[colorIndex].ToString("X"));
+                    colorIndex++;
+                    
+                }
+            }
+            
         }
 
         public void Reset()
@@ -109,7 +129,8 @@ namespace NES
         {
             int prgSize = 16 * 1024;
             int chrSize = 8 * 1024;
-            ushort start = _cartridge.From;
+
+            int baseAddress = _cartridge.From;
             using (var reader = new BinaryReader(new FileStream(_filePath, FileMode.Open, FileAccess.Read)))
             {
                 //Reads header
@@ -130,13 +151,13 @@ namespace NES
 
                 while (prgSize-- > 0)
                 {
-                    _cartridge.Write(start++, reader.ReadByte());
+                    _cartridge.Write((ushort)baseAddress++, reader.ReadByte());
                 }
                 var tiles = new List<SpritePattern>();
-                
+                baseAddress = 0;
                 while (chrSize-- > 0)
                 {
-                    _ppu.WriteChr(start++, reader.ReadByte());
+                    _ppu.WriteChr((ushort)baseAddress++, reader.ReadByte());
                 }
             }
         }
@@ -154,9 +175,5 @@ namespace NES
             _internalClock++;
         }
 
-        private List<SpritePattern> LoadPatternsFromAddress(int kbytes)
-        {
-            return null;
-        }
     }
 }

@@ -32,9 +32,9 @@ namespace NES.Display
         {
             if (x >= NesWidth || y >= NesHeight || x < 0 || y < 0) return;
             int pos = (y * NesWidth + x)*4;
-            _displayBuffer[pos] = (byte) ((color &    0x00FF0000) >> 16) ;
-            _displayBuffer[pos+1] =  (byte) ((color & 0x0000FF00) >> 8) ;
-            _displayBuffer[pos+2] = (byte)  (color &  0x000000FF) ;
+            _displayBuffer[pos] = (byte) ((color &  0x00FF0000) >> 16) ;
+            _displayBuffer[pos + 1] = (byte)((color & 0x0000FF00) >> 8) ;
+            _displayBuffer[pos + 2] = (byte)  (color &  0x000000FF) ;
             _displayBuffer[pos+3] = 255;
         }
 

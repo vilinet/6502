@@ -19,6 +19,12 @@
     <None Update="first.nes">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="donkey.nes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="pal.pal">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

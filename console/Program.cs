@@ -13,8 +13,8 @@ namespace console
         static void Main(string[] args)
         {
             var display = new SFMLDisplay(256,240);
-            nes = new Nes(display, "./first.nes");
-
+            nes = new Nes(display, "./donkey.nes");
+            nes.LoadPalette("pal.pal");
            // nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
            
            nes.RunOnThread();

@@ -16,6 +16,11 @@ namespace NES
             To = to;
             _data = new byte[To-From + 1];
         }
+
+        public void Resize(int size)
+        {
+            _data = new byte[size];
+        }
         
         public Cartridge(ushort from, ushort to, Cartridge source)
         {
