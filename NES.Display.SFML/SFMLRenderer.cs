@@ -37,14 +37,14 @@ namespace NES.Display.SFML
 
         private void KeyReleased(object sender, KeyEventArgs e)
         {
-            if (e.Code == Keyboard.Key.A) _keys &= 0b11111110;
-            else if (e.Code == Keyboard.Key.S) _keys &= 0b11111101;
-            else if (e.Code == Keyboard.Key.Backspace) _keys &= 0b11111011;       
-            else if (e.Code == Keyboard.Key.Enter) _keys &= 0b11110111;   
-            else if (e.Code == Keyboard.Key.Up) _keys &=  0b11101111;    
-            else if (e.Code == Keyboard.Key.Down) _keys &=  0b11011111;       
-            else if (e.Code == Keyboard.Key.Left) _keys &= 0b10111111;     
-            else if (e.Code == Keyboard.Key.Right) _keys &=  0b01111111;    
+            if (e.Code == Keyboard.Key.A) _keys               &= 0b11111110;
+            else if (e.Code == Keyboard.Key.S) _keys          &= 0b11111101;
+            else if (e.Code == Keyboard.Key.Backspace) _keys    &= 0b11111011;       
+            else if (e.Code == Keyboard.Key.Enter) _keys       &= 0b11110111;   
+            else if (e.Code == Keyboard.Key.Up) _keys           &=  0b11101111;    
+            else if (e.Code == Keyboard.Key.Down) _keys        &=  0b11011111;       
+            else if (e.Code == Keyboard.Key.Left) _keys        &= 0b10111111;     
+            else if (e.Code == Keyboard.Key.Right) _keys       &=  0b01111111;    
         }
 
      
@@ -60,7 +60,6 @@ namespace NES.Display.SFML
             else if (e.Code == Keyboard.Key.Down) _keys |= 0b0010_0000;
             else if (e.Code == Keyboard.Key.Left) _keys |= 0b0100_0000;
             else if (e.Code == Keyboard.Key.Right) _keys |= 0b1000_0000;
-            
         }
 
         public void DrawPixel(int x, int y, uint color)

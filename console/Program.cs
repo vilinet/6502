@@ -1,25 +1,23 @@
 ﻿using emulator6502;
 using NES;
 using System;
+using NES.Display.SDL2;
 using NES.Display.SFML;
 
 namespace console
 {
-    
     static class Program
     {
         private static Nes nes;
         
         static void Main(string[] args)
         {
-            var display = new SFMLDisplay(256,240);
+            var display = new SDL2Display(256*2,240*2); 
             nes = new Nes(display, display, "./donkey.nes" );
-           
-           nes.RunOnThread();
-
-           while (display.Window.IsOpen)
+            nes.RunOnThread();
+            
+            while (display.IsOpen)
             {
-                display.DispatchEvents();
                 display.Render();
             }
         }

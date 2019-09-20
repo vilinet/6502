@@ -104,7 +104,7 @@ namespace NES
             
             while (State != NesState.Stopped)
             {
-               if (elapsedTime >= frameTime)
+              if (elapsedTime >= frameTime)
                { 
                    if (State == NesState.Running) 
                    {

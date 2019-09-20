@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="sdl2" Version="2.0.5" />
+      <PackageReference Include="SDL2-CS" Version="2.0.0" />
+      <PackageReference Include="sdl2.nuget" Version="2.0.10" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\NES.Interfaces\NES.Interfaces.csproj" />
+    </ItemGroup>
+
+</Project>

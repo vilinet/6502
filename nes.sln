@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES.Interfaces", "NES.Inter
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES.Display.SFML", "NES.Display.SFML\NES.Display.SFML.csproj", "{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NES.Display.SDL2", "NES.Display.SDL2\NES.Display.SDL2.csproj", "{90FE2F49-8C35-4C0D-9EC9-F15632156F3B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76D3B853-6F9C-419F-9FC2-308AD6BDFD48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90FE2F49-8C35-4C0D-9EC9-F15632156F3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90FE2F49-8C35-4C0D-9EC9-F15632156F3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90FE2F49-8C35-4C0D-9EC9-F15632156F3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90FE2F49-8C35-4C0D-9EC9-F15632156F3B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
