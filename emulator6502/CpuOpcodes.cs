@@ -101,30 +101,29 @@ namespace emulator6502
 
                 case BindingMode.ZeroPageY:
                     return (byte)(param + _cpu.Y);
+                
+                case BindingMode.Absolute:
+                    return param;
 
                 case BindingMode.Indirect:
-                    var eahelp2 = (ushort)((param & 0xFF00) | ((param + 1) & 0x00FF));	//replicate 6502 page-boundary wraparound bug
-                    return (ushort)(_cpu.Bus.Read(param) | (_cpu.Bus.Read(eahelp2) << 8));
+                    return (ushort)(_cpu.Bus.Read(param) | (_cpu.Bus.Read((ushort)((param & 0xFF00) | ((param + 1) & 0x00FF))) << 8));
 
                 case BindingMode.IndexedIndirect:
                     return ReadIndirectWord((byte)(_cpu.X + param));
 
                 case BindingMode.IndirectIndexed:
                     return (ushort)(ReadIndirectWord((byte)param) + _cpu.Y);
-
-                case BindingMode.Absolute:
-                    return param;
-
+                
+                case BindingMode.Relative:
+                    if (param < 128) return (ushort)(_cpu.PC + param);
+                    else return (ushort)(_cpu.PC - (ushort)((((byte)param) ^ 0xFF) + 1));
+                
                 case BindingMode.AbsoluteX:
                     return (ushort)(param + _cpu.X);
 
                 case BindingMode.AbsoluteY:
                     return (ushort)(param + _cpu.Y);
-
-                case BindingMode.Relative:
-                    if (param < 128) return (ushort)(_cpu.PC + param);
-                    else return (ushort)(_cpu.PC - (ushort)((((byte)param) ^ 0xFF) + 1));
-
+                
                 default:
                     return 0xCCCC;
             }

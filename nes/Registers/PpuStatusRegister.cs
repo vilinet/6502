@@ -2,25 +2,24 @@
 
 namespace NES.Registers
 {
-    public class PpuStatusRegister : ByteRegister
+    public class PpuStatusRegister : BooleanByteRegister
     {
         /// <summary>
         /// O
         /// </summary>
         public bool SpriteOverflow
         {
-            get => GetBooleanBit(5);
-            set => SetBoolanBit(5, value);
+            get => Bit5;
+            set => Bit5 = value;
         }
-
 
         /// <summary>
         /// O
         /// </summary>
         public bool SpriteHit
         {
-            get => GetBooleanBit(6);
-            set => SetBoolanBit(6, value);
+            get => Bit6;
+            set => Bit6 = value;
         }
 
         /// <summary>
@@ -28,8 +27,8 @@ namespace NES.Registers
         /// </summary>
         public bool VerticalBlank
         {
-            get => GetBooleanBit(7);
-            set => SetBoolanBit(7, value);
+            get => Bit7;
+            set => Bit7 = value;
         }
     }
 }

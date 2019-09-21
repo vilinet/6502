@@ -2,7 +2,7 @@
 
 namespace NES.Registers
 {
-    public class PpuMaskRegister : ByteRegister
+    public class PpuMaskRegister : BooleanByteRegister
     {
         /// <summary>
         /// G
@@ -10,8 +10,8 @@ namespace NES.Registers
         /// </summary>
         public bool Grayscale
         {
-            get => GetBooleanBit(0);
-            set => SetBoolanBit(0, value);
+            get => Bit0;
+            set => Bit0 = value;
         }
 
         /// <summary>
@@ -20,8 +20,8 @@ namespace NES.Registers
         /// </summary>
         public bool BackgroundLeftColumnEnable
         {
-            get => GetBooleanBit(1);
-            set => SetBoolanBit(1, value);
+            get => Bit1;
+            set => Bit1 = value;
         }
 
         /// <summary>
@@ -30,8 +30,8 @@ namespace NES.Registers
         /// </summary>
         public bool SpriteLeftColumnEnable
         {
-            get => GetBooleanBit(2);
-            set => SetBoolanBit(2, value);
+            get => Bit2;
+            set => Bit2 = value;
         }
 
         /// <summary>
@@ -40,8 +40,8 @@ namespace NES.Registers
         /// </summary>
         public bool BackgroundEnable
         {
-            get => GetBooleanBit(3);
-            set => SetBoolanBit(3, value);
+            get => Bit3;
+            set => Bit3 = value;
         }
 
         /// <summary>
@@ -50,8 +50,8 @@ namespace NES.Registers
         /// </summary>
         public bool SpriteEnable
         {
-            get => GetBooleanBit(4);
-            set => SetBoolanBit(4, value);
+            get => Bit4;
+            set => Bit4 = value;
         }
 
         /// <summary>
@@ -60,8 +60,8 @@ namespace NES.Registers
         /// </summary>
         public bool Red
         {
-            get => GetBooleanBit(5);
-            set => SetBoolanBit(5, value);
+            get => Bit5;
+            set => Bit5 = value;
         }
 
         /// <summary>
@@ -70,8 +70,8 @@ namespace NES.Registers
         /// </summary>
         public bool Green
         {
-            get => GetBooleanBit(6);
-            set => SetBoolanBit(6, value);
+            get => Bit6;
+            set => Bit6 = value;
         }
 
 
@@ -80,8 +80,8 @@ namespace NES.Registers
         /// </summary>
         public bool Blue
         {
-            get => GetBooleanBit(7);
-            set => SetBoolanBit(7, value);
+            get => Bit7;
+            set => Bit7 = value;
         }
     }
 }

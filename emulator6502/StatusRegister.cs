@@ -1,24 +1,54 @@
 ﻿namespace emulator6502
 {
-    public class StatusRegister
+    public class StatusRegister : BooleanByteRegister
     {
-        public bool Carry { get; internal set; }
-        public bool Zero { get; internal  set; }
-        public bool InterruptDisable { get; internal set; } 
-        public bool DecimalMode { get; internal  set; }
-        public bool BreakInterrupt { get; internal  set; }
-        public bool NonUsed { get; set; } = true;
-        public bool Overflow { get; internal  set; }
-        public bool Negative { get; internal set; }
+        public bool Carry
+        {
+            get => Bit0;
+            set => Bit0 = value;
+        }
+
+        public bool Zero
+        {
+            get => Bit1;
+            set => Bit1 = value;
+        }
+
+        public bool InterruptDisable
+        {
+            get => Bit2;
+            set => Bit2 = value;
+        }
+
+        public bool DecimalMode
+        {
+            get => Bit3;
+            set => Bit3 = value;
+        }
+
+        public bool BreakInterrupt
+        {
+            get => Bit4;
+            set => Bit4 = value;
+        }
+
+        public bool NonUsed { get; } = true;
+
+        public bool Overflow
+        {
+            get => Bit6;
+            set => Bit6 = value;
+        }
+
+        public bool Negative
+        {
+            get => Bit7;
+            set => Bit7 = value;
+        }
 
         public void Reset()
         {
             Carry = Zero = InterruptDisable = DecimalMode = BreakInterrupt = Overflow = Negative = false;
-        }
-
-        public byte Value
-        {
-            get => (byte)((Carry?1:0) + ((Zero?1:0) << 1) + ((InterruptDisable ?1:0) << 2) +( (DecimalMode?1:0) << 3) +( (BreakInterrupt?1:0 )<< 4) + ((NonUsed? 1 : 0) << 5) + ((Overflow ? 1 : 0) << 6) + ((Negative?1:0 )<< 7));
         }
 
         public override string ToString()
@@ -29,7 +59,7 @@
                    ("C:" + (Carry ? "1" : "0") + "   ") +
                    ("I:" + (InterruptDisable ? "1" : "0") + ", ") +
                    ("B:" + (BreakInterrupt ? "1" : "0") + ", ") +
-                   ("D:" + (DecimalMode? "1" : "0") + ", ");
+                   ("D:" + (DecimalMode ? "1" : "0") + ", ");
         }
     }
 }

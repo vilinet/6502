@@ -10,37 +10,40 @@ namespace NES
 {
     public enum NesState
     {
-        Paused, Running, Stopped
+        Paused,
+        Running,
+        Stopped
     }
-    
+
     public class Nes
     {
         private readonly Ppu _ppu;
         private readonly IController _controller1, _controller2;
-        public NesState State { get; private set; }
-        public Cpu Cpu { get; }
-
         private readonly Bus _bus;
         private readonly Cartridge _cartridge;
-      
+
         private int _internalClock;
         private readonly CpuRam _cpuRam;
         private string _filePath;
         private readonly IDisplay _display;
 
-        public Nes(IDisplay display, IController controller1, string filePath)
+        public NesState State { get; private set; }
+        public Cpu Cpu { get; }
+
+        public Nes(IDisplay display, IDebugDisplay debugDisplay,  IController controller1, string filePath, IController controller2 = null)
         {
             _controller1 = controller1;
+            _controller2 = controller2;
             _display = display;
             _cpuRam = new CpuRam();
             _cartridge = new Cartridge(0x8000, 0xBFFF);
             _bus = new Bus();
             Cpu = new Cpu(_bus);
-            _ppu = new Ppu(Cpu, _bus, _display);
-            
+            _ppu = new Ppu(Cpu, _bus, _display, debugDisplay);
+
             _bus.AddMap(_cpuRam);
             _bus.AddMap(_ppu);
-            _bus.AddMap(new ControllerDevice(0x4016, controller1));
+            _bus.AddMap(new ControllerDevice(0x4016, _controller1));
             _bus.AddMap(new ControllerDevice(0x4017, _controller2));
             _bus.AddMap(new OamDma(_ppu, _bus));
             _bus.AddMap(_cartridge);
@@ -48,25 +51,19 @@ namespace NES
 
             _filePath = filePath;
             _ppu.PowerOn();
-            
+
             LoadCartridge();
             Cpu.Reset();
         }
 
         public void LoadPalette(string file)
         {
-            int colorIndex = 0;
+            var colorIndex = 0;
             using (var reader = new BinaryReader(new FileStream(file, FileMode.Open)))
             {
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
-                    var r = reader.ReadByte();
-                    var g = reader.ReadByte();
-                    var b = reader.ReadByte();
-                    PpuColors.Colors[colorIndex] = (uint)((r <<16) +( g << 8) + b);
-                    Console.WriteLine($"{colorIndex}:" + PpuColors.Colors[colorIndex].ToString("X"));
-                    colorIndex++;
-                    
+                    PpuColors.Colors[colorIndex++] = (uint) ((reader.ReadByte() << 16) + (reader.ReadByte() << 8) + reader.ReadByte());
                 }
             }
         }
@@ -96,37 +93,39 @@ namespace NES
             {
                 Reset();
             }
+            
             State = NesState.Running;
             
-            const double frameTime = 1f/60;
-            double elapsedTime = frameTime;
-            DateTime prev = DateTime.Now;
-            
+            const double frameTime = 1f / 60;
+            var elapsedTime = frameTime;
+            var prev = DateTime.Now;
+
             while (State != NesState.Stopped)
             {
-              if (elapsedTime >= frameTime)
-               { 
-                   if (State == NesState.Running) 
-                   {
-                       while (!_ppu.FrameFinished)
-                       {
-                           _ppu.Clock();
-                           if (_internalClock % 3 == 0)
-                           {
-                               Cpu.Clock();
-                               _internalClock = 0;
-                           }
-                           _internalClock++;
-                       }
+                if (elapsedTime >= frameTime)
+                {
+                    if (State == NesState.Running)
+                    {
+                        while (!_ppu.FrameFinished)
+                        {
+                            _ppu.Clock();
+                            if (_internalClock % 3 == 0)
+                            {
+                                Cpu.Clock();
+                                _internalClock = 0;
+                            }
 
-                       _ppu.FrameFinished = false;
-                   }
-                   
-                   elapsedTime = 0;
-               }
-               
-               elapsedTime += (DateTime.Now - prev).TotalSeconds;
-               prev  = DateTime.Now; 
+                            _internalClock++;
+                        }
+
+                        _ppu.FrameFinished = false;
+                    }
+
+                    elapsedTime = 0;
+                }
+
+                elapsedTime += (DateTime.Now - prev).TotalSeconds;
+                prev = DateTime.Now;
             }
         }
 
@@ -161,13 +160,13 @@ namespace NES
 
                 while (prgSize-- > 0)
                 {
-                    _cartridge.Write((ushort)baseAddress++, reader.ReadByte());
+                    _cartridge.Write((ushort) baseAddress++, reader.ReadByte());
                 }
-                var tiles = new List<SpritePattern>();
+
                 baseAddress = 0;
                 while (chrSize-- > 0)
                 {
-                    _ppu.WriteChr((ushort)baseAddress++, reader.ReadByte());
+                    _ppu.WriteChr((ushort) baseAddress++, reader.ReadByte());
                 }
             }
         }

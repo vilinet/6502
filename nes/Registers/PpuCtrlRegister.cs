@@ -2,7 +2,7 @@
 
 namespace NES.Registers
 {
-    public class PpuCtrlRegister : ByteRegister
+    public class PpuCtrlRegister : BooleanByteRegister
     {
         /// <summary>
         /// NN
@@ -10,11 +10,17 @@ namespace NES.Registers
         /// </summary>
         public byte NametableSelect
         {
-            get => (byte)(Value & 3);
+            get
+            {
+                int sum = 0;
+                sum+= Bit0 ? 1:0;
+                sum+= Bit1 ? 2:0;
+                return (byte)sum;
+            }
             set
             {
-                SetBit(0, (byte)(value & 1));
-                SetBit(1, (byte)((value & 2) >> 1));
+                Bit0 = (value & 1)!=0;
+                Bit1 = (value & 2) != 0;
             }
         }
 
@@ -24,8 +30,8 @@ namespace NES.Registers
         /// </summary>
         public bool IncrementMode
         {
-            get => GetBooleanBit(2);
-            set => SetBoolanBit(2, value);
+            get => Bit2;
+            set => Bit2 = value;
         }
 
         /// <summary>
@@ -34,8 +40,8 @@ namespace NES.Registers
         /// </summary>
         public bool SpriteTileSelect
         {
-            get => GetBooleanBit(3);
-            set => SetBoolanBit(3, value);
+            get => Bit3;
+            set => Bit3 = value;
         }
         /// <summary>
         /// B
@@ -43,8 +49,8 @@ namespace NES.Registers
         /// </summary>
         public bool BackgroundTileSelect
         {
-            get => GetBooleanBit(4);
-            set => SetBoolanBit(4, value);
+            get => Bit4;
+            set => Bit4 = value;
         }
 
         /// <summary>
@@ -54,8 +60,8 @@ namespace NES.Registers
         /// </summary>
         public bool SpriteHeight
         {
-            get => GetBooleanBit(5);
-            set => SetBoolanBit(5, value);
+            get => Bit5;
+            set => Bit5 = value;
         }
 
         /// <summary>
@@ -64,8 +70,8 @@ namespace NES.Registers
         /// </summary>
         public bool MasterSlave
         {
-            get => GetBooleanBit(6);
-            set => SetBoolanBit(6, value);
+            get => Bit6;
+            set => Bit6 = value;
         }
 
         /// <summary>
@@ -74,8 +80,8 @@ namespace NES.Registers
         /// </summary>
         public bool NmiEnabled
         {
-            get => GetBooleanBit(7);
-            set => SetBoolanBit(7, value);
+            get => Bit7;
+            set => Bit7 = value;
         }
     }
 }

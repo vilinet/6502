@@ -12,10 +12,12 @@ namespace console
         
         static void Main(string[] args)
         {
-            var display = new SDL2Display(256*2,240*2); 
-            nes = new Nes(display, display, "./donkey.nes" );
+            var display = new SDL2NesGameDisplay("NES", 256*4,240*2,256*2,240);
+             
+            nes = new Nes(display, display , display, "./donkey.nes" );
+            nes.LoadPalette("mesen.pal");
             nes.RunOnThread();
-            
+          
             while (display.IsOpen)
             {
                 display.Render();
