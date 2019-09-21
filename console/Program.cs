@@ -16,6 +16,7 @@ namespace console
              
             nes = new Nes(display, display , display, "./donkey.nes" );
             nes.LoadPalette("mesen.pal");
+            //nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
             nes.RunOnThread();
           
             while (display.IsOpen)

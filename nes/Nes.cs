@@ -106,13 +106,20 @@ namespace NES
                     {
                         while (!_ppu.FrameFinished)
                         {
-                            _ppu.Clock();
+                            try
+                            {
+                                _ppu.Clock();
+                         
                             if (_internalClock % 3 == 0)
                             {
                                 Cpu.Clock();
                                 _internalClock = 0;
                             }
+                            }
+                            catch (Exception E)
+                            {
 
+                            }
                             _internalClock++;
                         }
 

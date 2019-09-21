@@ -21,6 +21,8 @@ namespace NES
 
         public ushort To  => 0xFFFF;
 
+        public Mirroring Mirroring => Mirroring.Vertical;
+
         private byte[] _prgRom;
         private byte[] _chrRom;
 
@@ -71,6 +73,14 @@ namespace NES
             int addr = _mapper.ReadPpu(address);
             if (addr == -1) return -1;
             return _chrRom[addr];
+        }
+
+        public bool WritePpu(ushort address, byte val)
+        {
+            int addr = _mapper.WritePpu(address);
+            if (addr == -1) return false;
+            _chrRom[addr] = val;
+            return true;
         }
 
         public void Write(ushort address, byte value)

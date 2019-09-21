@@ -30,6 +30,15 @@ namespace NES.Mapper
             return -1;
         }
 
+        public int WritePpu(ushort address)
+        {
+            if (address >= 0x0000 && address <= 0x1FFF)
+            {
+                return address;
+            }
+            return -1;
+        }
+
         public int Write(ushort address)
         {
             if (address >= 0x8000 && address <= 0xFFFF)

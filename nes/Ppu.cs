@@ -20,8 +20,10 @@ namespace NES
         private const int NAMETABLE_ONLY_LENGTH = 0X3C0;
         private const int NAMETABLE_ATTRIBUTES = 0X23C0;
 
-        private byte[] _memory = new byte[0x4000];
+        private byte[] _palettes = new byte[32];
+        private byte[,] _patterns = new byte[ 2, 0x2000];
         private int[] _oamOnScanline = new int[8];
+        private byte[,] _nameTables = new byte[2, NAMETABLE_FULL_LENGTH];
         private int _oamOnScanlineCount;
         private ushort _actualWriteAddress;
         private bool _addressFull;
@@ -121,7 +123,7 @@ namespace NES
                 {
                     _scanline = -1;
                     FrameFinished = true;
-                    
+
                     DebugRender();
                     _display.FrameFinished();
                     _debugDisplay.FrameFinished();
@@ -135,16 +137,31 @@ namespace NES
             _cycle++;
         }
 
-        private void DebugPalettes()
+        private void DebugPalettes(int x, int y)
         {
-            
+            /*
+            var index = PALETTE_BG;
+
+            for (int i = 0; i < 2; i++)
+            {
+                if (i == 1)
+                {
+                    index = PALETTE_SPRITE;
+                }
+
+                for (int j = 0; j < 4; i++)
+                {
+
+                }
+            }*/
+
         }
 
         private void DebugRender()
         {
             //DebugNametable(260, 0);
 
-            DebugOam(270, 0);
+            //DebugPalettes(270, 0);
         }
 
         private void DebugNametable(int x, int y)
@@ -154,11 +171,11 @@ namespace NES
             {
                 for (int i = 0; i < 32; i++)
                 {
-                    DrawSprite(GetSprite(1, ReadPpu(startPos++)), x + i*8, y + j*8 );
+                    DrawSprite(GetSprite(1, ReadPpu(startPos++)), x + i * 8, y + j * 8);
                 }
             }
-            
-        } 
+
+        }
 
         private void DebugOam(int x, int y)
         {
@@ -168,7 +185,7 @@ namespace NES
                 for (int i = 0; i < 8; i++)
                 {
                     var sprite = GetSprite(_oams[index++]);
-                    DrawSprite(sprite, x+i*8, y+j*8);       
+                    DrawSprite(sprite, x + i * 8, y + j * 8);
                 }
             }
         }
@@ -284,12 +301,12 @@ namespace NES
                 for (int x = 0; x < 8; x++)
                 {
                     var palette = (value2 & 1) * 2 + (value1 & 1);
-                    
+
                     value1 >>= 1;
                     value2 >>= 1;
-                    _scanLineColors[bgX+(7-x)] = PpuColors.Colors[ReadPpu(basePalette + palette) % 64];
+                    _scanLineColors[bgX + (7 - x)] = PpuColors.Colors[ReadPpu(basePalette + palette) % 64];
                 }
-                
+
                 bgX += 8;
                 index++;
             }
@@ -384,7 +401,7 @@ namespace NES
                     }
                     else
                     {
-                        _actualWriteAddress = (ushort) ((_actualWriteAddress << 8) + value);
+                        _actualWriteAddress = (ushort)((_actualWriteAddress << 8) + value);
                         _addressFull = false;
                     }
 
@@ -398,17 +415,101 @@ namespace NES
 
         private byte ReadPpu(int address)
         {
+            address &= 0x3FFF;
             int val = _cartridge.ReadPpu((ushort)address);
-            if (val != -1)
+            if (val != -1) return (byte)val;
+
+            if (address >= 0x0000 && address <= 0x1FFF)
             {
-                return (byte)val;
+                return _patterns[(address & 0x1000) >> 1,address & 0x0FFF];
             }
-            return _memory[address];
+            else if (address >= 0x2000 && address <= 0x3EFF)
+            {
+                address &= 0x0FFF;
+                if (_cartridge.Mirroring == Mirroring.Vertical)
+                {
+                    if (address >= 0x0000 && address <= 0x03FF)
+                        return _nameTables[0,address & 0x03FF] ;
+                    if (address >= 0x0400 && address <= 0x07FF)
+                        return _nameTables[1, address & 0x03FF];
+                    if (address >= 0x0800 && address <= 0x0BFF)
+                        return _nameTables[0, address & 0x03FF];
+                    if (address >= 0x0C00 && address <= 0x0FFF)
+                        return _nameTables[1,address & 0x03FF];
+                }
+                if (_cartridge.Mirroring == Mirroring.Horizontal)
+                {
+                    // Horizontal
+                    if (address >= 0x0000 && address <= 0x03FF)
+                        return _nameTables[0, address & 0x03FF];
+                    if (address >= 0x0400 && address <= 0x07FF)
+                        return _nameTables[0, address & 0x03FF];
+                    if (address >= 0x0800 && address <= 0x0BFF)
+                        return _nameTables[1, address & 0x03FF];
+                    if (address >= 0x0C00 && address <= 0x0FFF)
+                        return _nameTables[1, address & 0x03FF];
+                }
+            }
+            else if (address >= 0x3F00 && address <= 0x3FFF)
+            {
+                address &= 0x001F;
+                if (address == 0x0010) address = 0x0000;
+                if (address == 0x0014) address = 0x0004;
+                if (address == 0x0018) address = 0x0008;
+                if (address == 0x001C) address = 0x000C;
+                return (byte)(_palettes[address] & (_PPURegisters.PPUMASK.Grayscale ? 0x30 : 0x3F));
+            }
+            return 0;
         }
 
-        public void WritePpu(ushort address, byte data)
+        private void WritePpu(ushort address, byte value)
         {
-            _memory[address] = data;
+            address &= 0x3FFF;
+
+
+            if (_cartridge.WritePpu(address, value))
+            {
+
+            }
+            else if (address >= 0x0000 && address <= 0x1FFF)
+            {
+                _patterns[(address & 0x1000) >> 12,address & 0x0FFF] = value;
+            }
+            else if (address >= 0x2000 && address <= 0x3EFF)
+            {
+                address &= 0x0FFF;
+                if (_cartridge.Mirroring == Mirroring.Vertical)
+                {
+                    if (address >= 0x0000 && address <= 0x03FF)
+                        _nameTables[0, address & 0x03FF] = value;
+                    if (address >= 0x0400 && address <= 0x07FF)
+                        _nameTables[1, address & 0x03FF] = value;
+                    if (address >= 0x0800 && address <= 0x0BFF)
+                        _nameTables[0, address & 0x03FF] = value;
+                    if (address >= 0x0C00 && address <= 0x0FFF)
+                        _nameTables[1, address & 0x03FF] = value;
+                }
+                if (_cartridge.Mirroring == Mirroring.Horizontal)
+                {
+                    if (address >= 0x0000 && address <= 0x03FF)
+                        _nameTables[0, address & 0x03FF] = value;
+                    if (address >= 0x0400 && address <= 0x07FF)
+                        _nameTables[0, address & 0x03FF] = value;
+                    if (address >= 0x0800 && address <= 0x0BFF)
+                        _nameTables[1, address & 0x03FF] = value;
+                    if (address >= 0x0C00 && address <= 0x0FFF)
+                        _nameTables[1, address & 0x03FF] = value;
+                }
+            }
+            else if (address >= 0x3F00 )
+            {
+                address &= 0x001F;
+                if (address == 0x0010) address = 0x0000;
+                if (address == 0x0014) address = 0x0004;
+                if (address == 0x0018) address = 0x0008;
+                if (address == 0x001C) address = 0x000C;
+                _palettes[address] = value;
+            }
         }
 
         public void Reset()
@@ -417,7 +518,7 @@ namespace NES
             _cycle = 0;
             _scanline = -1;
             _PPURegisters.PPUCTRL.Value = 0;
-            _PPURegisters.PPUMASK.Value = (byte) (_PPURegisters.PPUMASK.Value | 0b1000000);
+            _PPURegisters.PPUMASK.Value = (byte)(_PPURegisters.PPUMASK.Value | 0b1000000);
             _PPURegisters.PPUSTATUS.Value &= 0b10111111;
             _PPURegisters.OAMADDR = 0;
             _PPURegisters.OAMDATA = 0;

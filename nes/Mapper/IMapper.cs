@@ -6,5 +6,6 @@ namespace NES.Mapper
         int Read(ushort address);
         int Write(ushort address);
         int ReadPpu(ushort address);
+        int WritePpu(ushort address);
     }
 }
