@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using emulator6502;
 using NES.Interfaces;
 using NES.Registers;
@@ -21,11 +22,11 @@ namespace NES
         private const int NAMETABLE_ATTRIBUTES = 0X23C0;
 
         private byte[] _palettes = new byte[32];
-        private byte[,] _patterns = new byte[ 2, 0x2000];
+        private byte[,] _patterns = new byte[2, 0x2000];
         private int[] _oamOnScanline = new int[8];
         private byte[,] _nameTables = new byte[2, NAMETABLE_FULL_LENGTH];
         private int _oamOnScanlineCount;
-        private ushort _actualWriteAddress;
+        private ushort _actualAccessAddress;
         private bool _addressFull;
         private Oam[] _oams = new Oam[64];
         private short _cycle { get; set; }
@@ -35,6 +36,7 @@ namespace NES
         private readonly ICartridge _cartridge;
         private readonly uint[] _scanLineColors = new uint[300];
         private IDebugDisplay _debugDisplay;
+        private byte _ppuReadCache;
 
         public Ppu(Cpu cpu, ICartridge cartridge, IDisplay display, IDebugDisplay debugDisplay)
         {
@@ -55,7 +57,7 @@ namespace NES
                     _oams[index].Y = data;
                     break;
                 case 1:
-                    _oams[index].SpriteIndex = data;
+                    _oams[index].TileIndex = data;
                     break;
                 case 2:
                     _oams[index].Attributes = data;
@@ -139,29 +141,52 @@ namespace NES
 
         private void DebugPalettes(int x, int y)
         {
-            /*
-            var index = PALETTE_BG;
-
-            for (int i = 0; i < 2; i++)
+            int ind = 0;
+            for (int t = 0; t < 4; t++)
             {
-                if (i == 1)
+                for (int i = 0; i < 4; i++)
                 {
-                    index = PALETTE_SPRITE;
+                    DrawRectangle(
+                        x + i * 8,
+                        t * 8,
+                        8, 8, PpuColors.Colors[_palettes[ind]%64]);
+                    ind++;
                 }
+            }
+        }
 
-                for (int j = 0; j < 4; i++)
+        private void DrawRectangle(int x, int y, int width, int height, uint color)
+        {
+            for (int i = x; i < x + width; i++)
+            {
+                for (int j = y; j < y + height; j++)
                 {
-
+                    var str = color.ToString("X6");
+                    _debugDisplay.DrawPixel(i, j, color);
                 }
-            }*/
-
+            }
         }
 
         private void DebugRender()
         {
-            //DebugNametable(260, 0);
+            // DebugNametable(0, 0); 
+           // DrawSprite(GetSprite(1, 1, 1, bg: true), 300, 50);
+        }
 
-            //DebugPalettes(270, 0);
+        private void DebugAttributes()
+        {
+            int index = 0;
+             for(int i=0; i<8; i++)
+            {
+                for(int j=0; j<8; j++)
+                {
+                    Console.Write(_nameTables[0, NAMETABLE_ONLY_LENGTH+index].ToString("X2") + " ");
+                    index += 1;
+                }
+                Console.WriteLine();
+            }
+            Console.WriteLine();
+            System.Console.WriteLine();
         }
 
         private void DebugNametable(int x, int y)
@@ -171,7 +196,7 @@ namespace NES
             {
                 for (int i = 0; i < 32; i++)
                 {
-                    DrawSprite(GetSprite(1, ReadPpu(startPos++)), x + i * 8, y + j * 8);
+                    DrawSprite(GetSprite(1, ReadPpu(startPos++),1), x + i * 8, y + j * 8);
                 }
             }
 
@@ -200,21 +225,21 @@ namespace NES
                     _debugDisplay.DrawPixel(i, j, sprite.data[index++]);
                 }
             }
-        }
+        } 
 
         private NesSprite GetSprite(Oam oam)
         {
             bool flipHor = (oam.Attributes & 0b01000000) != 0;
             bool flipVer = (oam.Attributes & 0b10000000) != 0;
-            return GetSprite(1, oam.SpriteIndex, oam.Attributes & 3, flipVer, flipHor);
+            return GetSprite(1, oam.TileIndex, oam.Attributes & 3, flipVer, flipHor);
         }
 
-        private NesSprite GetSprite(int bankIndex, int spriteIndex, int paletteIndex = -1, bool flipVertical = false, bool flipHorizontal = false)
+        private NesSprite GetSprite(int bankIndex, int spriteIndex, int paletteIndex = -1, bool bg = false, bool flipVertical = false, bool flipHorizontal = false)
         {
             if (paletteIndex == -1) paletteIndex = 1;
             var sprite = new NesSprite();
 
-            var paletteBase = bankIndex == 1 ? paletteIndex * 4 + PALETTE_SPRITE : paletteIndex * 4 + PALETTE_BG;
+            var paletteBase = !bg ? paletteIndex * 4 + PALETTE_SPRITE : paletteIndex * 4 + PALETTE_BG;
 
             var addr = spriteIndex * 16 + bankIndex * 0x1000;
             var index = 0;
@@ -245,7 +270,7 @@ namespace NES
         private class Oam
         {
             public byte Y { get; set; }
-            public byte SpriteIndex { get; set; }
+            public byte TileIndex { get; set; }
             public byte Attributes { get; set; }
             public byte X { get; set; }
         }
@@ -260,25 +285,38 @@ namespace NES
             for (var i = 0; i < 64 && _oamOnScanlineCount < 8; i += 1)
             {
                 if (_oams[i].Y > 0 && _oams[i].Y < 0xEF && y >= _oams[i].Y && y < _oams[i].Y + 8)
-                {
                     _oamOnScanline[_oamOnScanlineCount++] = i;
-                }
             }
 
             for (var i = 0; i < 256; i++) _scanLineColors[i] = 0;
 
             var bgY = y >> 3;
             var index = NAMETABLE_TILES + bgY * 32;
-            var attrIndex = NAMETABLE_TILES + NAMETABLE_ONLY_LENGTH + bgY * 16;
-            var actualBgY = _scanline % 8;
+            var attrIndex = NAMETABLE_TILES + NAMETABLE_ONLY_LENGTH + ((bgY >> 2) << 3);
+            var actualBgY = y % 8;
+            var top = y % 64 <= 31;
             var bgX = 0;
-            var top = _scanline % 16 <= 7;
+            if (y == 32)
+            {
+
+            }
+
             for (int i = 0; i < 32; i++)
             {
-                var left = (i % 2) == 0;
-
+                var left = (i % 4) <= 1;
+                if (i > 0 && i % 4 == 0)
+                {
+                    attrIndex += 1;
+                }
                 var attr = ReadPpu(attrIndex);
+  
+                var tileIndex = ReadPpu(index);
+                if (tileIndex == 0xa3)
+                {
+
+                }
                 int basePalette = PALETTE_BG;
+
                 if (attr > 0)
                 {
                     var topleftPaletta = attr & 0x3;
@@ -291,20 +329,22 @@ namespace NES
                     else basePalette += bottomRightPaletta * 4;
                 }
 
-                attrIndex += i % 2;
-                var spriteIndex = ReadPpu(index);
-                var memIndex = spriteIndex * 16 + actualBgY + 0x1000;
+              
+                var memIndex = tileIndex * 16 + actualBgY + 0x1000;
 
                 int value1 = ReadPpu(memIndex);
                 int value2 = ReadPpu(memIndex + 8);
 
-                for (int x = 0; x < 8; x++)
+                if (_PPURegisters.PPUMASK.BackgroundEnable)
                 {
-                    var palette = (value2 & 1) * 2 + (value1 & 1);
+                    for (int x = 0; x < 8; x++)
+                    {
+                        var palette = (value2 & 1) * 2 + (value1 & 1);
+                        value1 >>= 1;
+                        value2 >>= 1;
 
-                    value1 >>= 1;
-                    value2 >>= 1;
-                    _scanLineColors[bgX + (7 - x)] = PpuColors.Colors[ReadPpu(basePalette + palette) % 64];
+                        _scanLineColors[bgX + (7 - x)] = PpuColors.Colors[ReadPpu(basePalette + palette) % 64];
+                    }
                 }
 
                 bgX += 8;
@@ -322,22 +362,32 @@ namespace NES
 
                 int actualY = flipVer ? 7 - (_scanline - oam.Y) : (_scanline - oam.Y);
 
-                int yIndex = oam.SpriteIndex * 16 + actualY;
+                int yIndex = oam.TileIndex * 16 + actualY;
                 if (_PPURegisters.PPUCTRL.SpriteTileSelect) yIndex += 0x1000;
 
                 int value1 = ReadPpu(yIndex);
                 int value2 = ReadPpu(yIndex + 8);
-
-                for (int x = 0; x < 8; x++)
+                if (_PPURegisters.PPUMASK.SpriteEnable)
                 {
-                    var bit = 7 - x;
-                    if (flipHor) bit = x;
-
-                    var palette = ((value2 & (1 << bit)) != 0 ? 2 : 0) + ((value1 & (1 << bit)) >> bit);
-
-                    if (palette > 0)
+                    for (int x = 0; x < 8; x++)
                     {
-                        _scanLineColors[oam.X + x] = PpuColors.Colors[ReadPpu(paletteBase + palette) % 64];
+                        var palette = (value2 & 1) * 2 + (value1 & 1);
+                        value1 >>= 1;
+                        value2 >>= 1;
+
+
+                        if (palette > 0)
+                        {
+                            if (flipHor)
+                            {
+                                _scanLineColors[oam.X + x] = PpuColors.Colors[ReadPpu(paletteBase + palette) % 64];
+
+                            }
+                            else
+                            {
+                                _scanLineColors[oam.X + (7 - x)] = PpuColors.Colors[ReadPpu(paletteBase + palette) % 64];
+                            }
+                        }
                     }
                 }
             }
@@ -350,23 +400,32 @@ namespace NES
             switch (result)
             {
                 case 0:
-                    return _PPURegisters.PPUCTRL;
+                    return 0;
                 case 1:
-                    return _PPURegisters.PPUMASK.Value;
+                    return 0;
                 case 2:
                     var value = (byte)_PPURegisters.PPUSTATUS;
                     _PPURegisters.PPUSTATUS.VerticalBlank = true;
+                    _actualAccessAddress = 0;
+                    _addressFull = false;
                     return value;
                 case 3:
-                    return _PPURegisters.OAMADDR;
+                    return 0;
                 case 4:
-                    return _PPURegisters.OAMDATA;
+                    return 0;
                 case 5:
-                    return _PPURegisters.PPUSCROLL;
+                    return 0;
                 case 6:
-                    return _PPURegisters.PPUADDR;
+
+                    return 0;
                 case 7:
-                    return _PPURegisters.PPUDATA;
+                    var data = _ppuReadCache;
+                    _ppuReadCache = ReadPpu(_actualAccessAddress);
+                    if (_actualAccessAddress >= 0x3F00) data = _ppuReadCache;
+                    
+                    _actualAccessAddress += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
+
+                    return data;
             }
 
             return 0;
@@ -396,19 +455,19 @@ namespace NES
                     _PPURegisters.PPUADDR = value;
                     if (!_addressFull)
                     {
-                        _actualWriteAddress = value;
+                        _actualAccessAddress = value;
                         _addressFull = true;
                     }
                     else
                     {
-                        _actualWriteAddress = (ushort)((_actualWriteAddress << 8) + value);
+                        _actualAccessAddress = (ushort)((_actualAccessAddress << 8) + value);
                         _addressFull = false;
                     }
 
                     break;
                 case 7:
-                    WritePpu(_actualWriteAddress, value);
-                    _actualWriteAddress += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
+                    WritePpu(_actualAccessAddress, value);
+                    _actualAccessAddress += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
                     break;
             }
         }
@@ -421,7 +480,7 @@ namespace NES
 
             if (address >= 0x0000 && address <= 0x1FFF)
             {
-                return _patterns[(address & 0x1000) >> 1,address & 0x0FFF];
+                return _patterns[(address & 0x1000) >> 1, address & 0x0FFF];
             }
             else if (address >= 0x2000 && address <= 0x3EFF)
             {
@@ -429,13 +488,13 @@ namespace NES
                 if (_cartridge.Mirroring == Mirroring.Vertical)
                 {
                     if (address >= 0x0000 && address <= 0x03FF)
-                        return _nameTables[0,address & 0x03FF] ;
+                        return _nameTables[0, address & 0x03FF];
                     if (address >= 0x0400 && address <= 0x07FF)
                         return _nameTables[1, address & 0x03FF];
                     if (address >= 0x0800 && address <= 0x0BFF)
                         return _nameTables[0, address & 0x03FF];
                     if (address >= 0x0C00 && address <= 0x0FFF)
-                        return _nameTables[1,address & 0x03FF];
+                        return _nameTables[1, address & 0x03FF];
                 }
                 if (_cartridge.Mirroring == Mirroring.Horizontal)
                 {
@@ -473,11 +532,16 @@ namespace NES
             }
             else if (address >= 0x0000 && address <= 0x1FFF)
             {
-                _patterns[(address & 0x1000) >> 12,address & 0x0FFF] = value;
+                _patterns[(address & 0x1000) >> 12, address & 0x0FFF] = value;
             }
             else if (address >= 0x2000 && address <= 0x3EFF)
             {
                 address &= 0x0FFF;
+                if(address == 960 && value == 255)
+                {
+                    
+                    Console.WriteLine(value);
+                }
                 if (_cartridge.Mirroring == Mirroring.Vertical)
                 {
                     if (address >= 0x0000 && address <= 0x03FF)
@@ -501,7 +565,7 @@ namespace NES
                         _nameTables[1, address & 0x03FF] = value;
                 }
             }
-            else if (address >= 0x3F00 )
+            else if (address >= 0x3F00)
             {
                 address &= 0x001F;
                 if (address == 0x0010) address = 0x0000;

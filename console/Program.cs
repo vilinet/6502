@@ -2,7 +2,6 @@
 using NES;
 using System;
 using NES.Display.SDL2;
-using NES.Display.SFML;
 
 namespace console
 {
@@ -13,8 +12,7 @@ namespace console
         static void Main(string[] args)
         {
             var display = new SDL2NesGameDisplay("NES", 256*4,240*2,256*2,240);
-             
-            nes = new Nes(display, display , display, "./donkey.nes" );
+            nes = new Nes(display, display , display, "./nestest.nes" );
             nes.LoadPalette("mesen.pal");
             //nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
             nes.RunOnThread();

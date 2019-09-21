@@ -88,8 +88,6 @@ namespace NES.Display.SDL2
                 SDL.SDL_RenderPresent(_renderer);
             }
         }
-
-    
     
     }
 }

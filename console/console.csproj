@@ -9,7 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\emulator6502\emulator6502.csproj" />
     <ProjectReference Include="..\NES.Display.SDL2\NES.Display.SDL2.csproj" />
-    <ProjectReference Include="..\NES.Display.SFML\NES.Display.SFML.csproj" />
     <ProjectReference Include="..\NES\NES.csproj" />
   </ItemGroup>
 
@@ -25,6 +24,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="mesen.pal">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="smb.nes">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
