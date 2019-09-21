@@ -10,6 +10,8 @@ namespace NES
         public int CharBanks { get; internal set; }
 
         public int MapperId { get; internal set; }
+
+        public Mirroring Mirroring { get; internal set; }
     }
 
     public class Cartridge : ICartridge
@@ -21,7 +23,7 @@ namespace NES
 
         public ushort To  => 0xFFFF;
 
-        public Mirroring Mirroring => Mirroring.Vertical;
+        public Mirroring Mirroring => Info.Mirroring;
 
         private byte[] _prgRom;
         private byte[] _chrRom;
@@ -47,6 +49,11 @@ namespace NES
                         Info.CharBanks = reader.ReadByte();
                         _chrRom = new byte[Info.CharBanks * 8 * 1024];
 
+                    }
+                    else if(i == 6)
+                    {
+                        var value = reader.ReadByte();
+                        Info.Mirroring = (value & 1) == 1 ?  Mirroring.Horizontal: Mirroring.Vertical;
                     }
                     else
                     {
