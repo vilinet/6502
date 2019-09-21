@@ -476,8 +476,9 @@ namespace emulator6502
 
         private void Php(ushort param, BindingMode mode)
         {
-            Push((byte)(_cpu.Status.Value | (byte)16));
+            Push((byte)(_cpu.Status.Value | 16 | 32));
             _cpu.Status.BreakInterrupt = false;
+            _cpu.Status.NonUsed = false;
         }
 
         private void Plp(ushort param, BindingMode mode)

@@ -169,8 +169,8 @@ namespace NES
 
         private void DebugRender()
         {
-            // DebugNametable(0, 0); 
-           // DrawSprite(GetSprite(1, 1, 1, bg: true), 300, 50);
+            
+            DrawSprite(GetSprite(0, 0x10, 1, bg: true), 300, 50);
         }
 
         private void DebugAttributes()
@@ -196,9 +196,11 @@ namespace NES
             {
                 for (int i = 0; i < 32; i++)
                 {
-                    DrawSprite(GetSprite(1, ReadPpu(startPos++),1), x + i * 8, y + j * 8);
+                    Console.Write(ReadPpu(startPos++).ToString("X2") + " ");
                 }
+                Console.WriteLine();
             }
+            Console.WriteLine();
 
         }
 
@@ -296,10 +298,6 @@ namespace NES
             var actualBgY = y % 8;
             var top = y % 64 <= 31;
             var bgX = 0;
-            if (y == 32)
-            {
-
-            }
 
             for (int i = 0; i < 32; i++)
             {
@@ -309,12 +307,7 @@ namespace NES
                     attrIndex += 1;
                 }
                 var attr = ReadPpu(attrIndex);
-  
                 var tileIndex = ReadPpu(index);
-                if (tileIndex == 0xa3)
-                {
-
-                }
                 int basePalette = PALETTE_BG;
 
                 if (attr > 0)
@@ -330,7 +323,7 @@ namespace NES
                 }
 
               
-                var memIndex = tileIndex * 16 + actualBgY + 0x1000;
+                var memIndex = tileIndex * 16 + actualBgY;
 
                 int value1 = ReadPpu(memIndex);
                 int value2 = ReadPpu(memIndex + 8);
@@ -363,7 +356,7 @@ namespace NES
                 int actualY = flipVer ? 7 - (_scanline - oam.Y) : (_scanline - oam.Y);
 
                 int yIndex = oam.TileIndex * 16 + actualY;
-                if (_PPURegisters.PPUCTRL.SpriteTileSelect) yIndex += 0x1000;
+                if (_PPURegisters.PPUCTRL.SpriteBank) yIndex += 0x1000;
 
                 int value1 = ReadPpu(yIndex);
                 int value2 = ReadPpu(yIndex + 8);

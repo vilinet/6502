@@ -32,7 +32,7 @@
             set => Bit4 = value;
         }
 
-        public bool NonUsed { get; } = true;
+        public bool NonUsed { get => Bit5; set => Bit5 = value; } 
 
         public bool Overflow
         {
@@ -48,6 +48,7 @@
 
         public void Reset()
         {
+            NonUsed = true;
             Carry = Zero = InterruptDisable = DecimalMode = BreakInterrupt = Overflow = Negative = false;
         }
 

@@ -38,7 +38,7 @@ namespace NES.Registers
         ///  s
         ///  Bit 3
         /// </summary>
-        public bool SpriteTileSelect
+        public bool SpriteBank
         {
             get => Bit3;
             set => Bit3 = value;
@@ -47,7 +47,7 @@ namespace NES.Registers
         /// B
         /// Bit 4
         /// </summary>
-        public bool BackgroundTileSelect
+        public bool BackgroundBank
         {
             get => Bit4;
             set => Bit4 = value;
