@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Net.Mail;
-using System.Text.Json;
+﻿using System.IO;
 using emulator6502;
 using NES.Interfaces;
 using NES.Registers;
@@ -173,7 +170,6 @@ namespace NES
             }
 
             return 0;
-        }
         }
 
         private void DebugRender()
