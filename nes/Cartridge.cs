@@ -1,42 +1,86 @@
-﻿using System.Drawing;
-using emulator6502;
+﻿using System.IO;
+using NES.Mapper;
 
 namespace NES
 {
-    public class Cartridge : IAddressable
+    public class RomInfo
     {
-        public ushort From { get; } 
-        public ushort To { get; }
+        public int ProgramBanks { get; internal set; }
 
-        private byte[] _data;
+        public int CharBanks { get; internal set; }
 
-        public Cartridge(ushort from, ushort to)
+        public int MapperId { get; internal set; }
+    }
+
+    public class Cartridge : ICartridge
+    {
+
+        public RomInfo Info { get; set; }
+
+        public ushort From  => 0x8000;
+
+        public ushort To  => 0xFFFF;
+
+        private byte[] _prgRom;
+        private byte[] _chrRom;
+
+        private IMapper _mapper;
+
+        public void LoadRom(string filepath)
         {
-            From = from;
-            To = to;
-            _data = new byte[To-From + 1];
+            Info = new RomInfo();
+
+            using (var reader = new BinaryReader(new FileStream(filepath, FileMode.Open, FileAccess.Read)))
+            {
+                //Reads header
+                for (int i = 0; i < 16; i++)
+                {
+                    if (i == 4)
+                    {
+                        Info.ProgramBanks = reader.ReadByte();
+                        _prgRom = new byte[Info.ProgramBanks * 16 * 1024];
+                    }
+                    else if (i == 5)
+                    {
+                        Info.CharBanks = reader.ReadByte();
+                        _chrRom = new byte[Info.CharBanks * 8 * 1024];
+
+                    }
+                    else
+                    {
+                        reader.ReadByte();
+                    }
+                }
+
+                for (int i = 0; i < _prgRom.Length; i++)
+                {
+                    _prgRom[i] = reader.ReadByte();
+                }
+
+                for (int i = 0; i < _chrRom.Length; i++)
+                {
+                    _chrRom[i] = reader.ReadByte();
+                }
+
+                _mapper = new Mapper000(Info.ProgramBanks);
+            }
         }
 
-        public void Resize(int size)
+        public int ReadPpu(ushort address)
         {
-            _data = new byte[size];
-        }
-        
-        public Cartridge(ushort from, ushort to, Cartridge source)
-        {
-            From = from;
-            To = to;
-            _data = source._data;
+            int addr = _mapper.ReadPpu(address);
+            if (addr == -1) return -1;
+            return _chrRom[addr];
         }
 
         public void Write(ushort address, byte value)
         {
-            _data[address - From] = value;
+            _prgRom[_mapper.Read(address)] = value;
         }
 
         public byte Read(ushort address)
         {
-            return _data[address - From];
+            return  _prgRom[_mapper.Read(address)];
         }
     }
 }

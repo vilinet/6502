@@ -35,24 +35,14 @@ namespace NES.Display.SDL2
             
             SDL.SDL_GL_SetSwapInterval(0);
 
-            unsafe
-            {
-                fixed (uint* t = &_buffer[0])
-                {
-                    _bufferPtr = new IntPtr(t);
-                }
-            }
-
+            unsafe { fixed (uint* t = &_buffer[0]) _bufferPtr = new IntPtr(t); }
+            
             IsOpen = true;
         }
 
-        protected virtual void OnBeforeRender()
-        {
-            
-        }
-        
+        protected virtual void OnBeforeRender(){}
 
-        public bool IsOpen { get; private set; }
+        public bool IsOpen { get; protected set; }
         
 
         public void DrawPixel(int x, int y, uint color)
@@ -66,6 +56,7 @@ namespace NES.Display.SDL2
         }
 
         protected virtual void OnKeyDown(SDL.SDL_Keysym e)  { }
+
         protected virtual void OnKeyUp(SDL.SDL_Keysym e)  { }
         
         public void Render()

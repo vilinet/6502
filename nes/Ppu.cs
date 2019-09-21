@@ -30,22 +30,17 @@ namespace NES
         private short _scanline;
         private readonly IDisplay _display;
         private readonly Cpu _cpu;
-        private readonly Bus _bus;
+        private readonly ICartridge _cartridge;
         private readonly uint[] _scanLineColors = new uint[300];
         private IDebugDisplay _debugDisplay;
 
-        public Ppu(Cpu cpu, Bus bus, IDisplay display, IDebugDisplay debugDisplay)
+        public Ppu(Cpu cpu, ICartridge cartridge, IDisplay display, IDebugDisplay debugDisplay)
         {
             _debugDisplay = debugDisplay;
             _display = display;
             _cpu = cpu;
-            _bus = bus;
+            _cartridge = cartridge;
             for (int i = 0; i < 64; i++) _oams[i] = new Oam();
-        }
-
-        public void WriteChr(ushort address, byte data)
-        {
-            _memory[address] = data;
         }
 
         public void WriteOAM(byte data)
@@ -142,34 +137,7 @@ namespace NES
 
         private void DebugPalettes()
         {
-        }
-
-        public byte Read(ushort address)
-        {
-            var result = (address - 0x2000) % 8;
-            switch (result)
-            {
-                case 0:
-                    return _PPURegisters.PPUCTRL;
-                case 1:
-                    return _PPURegisters.PPUMASK.Value;
-                case 2:
-                    var value = (byte) _PPURegisters.PPUSTATUS;
-                    _PPURegisters.PPUSTATUS.VerticalBlank = true;
-                    return value;
-                case 3:
-                    return _PPURegisters.OAMADDR;
-                case 4:
-                    return _PPURegisters.OAMDATA;
-                case 5:
-                    return _PPURegisters.PPUSCROLL;
-                case 6:
-                    return _PPURegisters.PPUADDR;
-                case 7:
-                    return _PPURegisters.PPUDATA;
-            }
-
-            return 0;
+            
         }
 
         private void DebugRender()
@@ -186,7 +154,7 @@ namespace NES
             {
                 for (int i = 0; i < 32; i++)
                 {
-                    DrawSprite(GetSprite(1, _memory[startPos++]), x + i*8, y + j*8 );
+                    DrawSprite(GetSprite(1, ReadPpu(startPos++)), x + i*8, y + j*8 );
                 }
             }
             
@@ -221,34 +189,33 @@ namespace NES
         {
             bool flipHor = (oam.Attributes & 0b01000000) != 0;
             bool flipVer = (oam.Attributes & 0b10000000) != 0;
-            return GetSprite(1, oam.SpriteIndex, oam.Attributes&3, flipVer, flipHor);
+            return GetSprite(1, oam.SpriteIndex, oam.Attributes & 3, flipVer, flipHor);
         }
-        
+
         private NesSprite GetSprite(int bankIndex, int spriteIndex, int paletteIndex = -1, bool flipVertical = false, bool flipHorizontal = false)
         {
             if (paletteIndex == -1) paletteIndex = 1;
             var sprite = new NesSprite();
 
             var paletteBase = bankIndex == 1 ? paletteIndex * 4 + PALETTE_SPRITE : paletteIndex * 4 + PALETTE_BG;
-            
+
             var addr = spriteIndex * 16 + bankIndex * 0x1000;
             var index = 0;
 
             for (int j = 0; j < 8; j++)
             {
-                int value1 = _memory[addr];
-                int value2 = _memory[addr + 8];
-                
+                int value1 = ReadPpu(addr);
+                int value2 = ReadPpu(addr + 8);
+
                 for (int x = 0; x < 8; x++)
                 {
-                    var palette  = ((value2 & 1) << 1) + (value1 & 1);
-                    
-                    
-                    sprite.data[index+(7-x)] = PpuColors.Colors[_memory[paletteBase + palette] % 64];
-                    
+                    var palette = ((value2 & 1) << 1) + (value1 & 1);
+
+                    sprite.data[index + (7 - x)] = PpuColors.Colors[ReadPpu(paletteBase + palette) % 64];
+
                     value1 >>= 1;
                     value2 >>= 1;
-                    
+
                 }
 
                 index += 8;
@@ -293,7 +260,7 @@ namespace NES
             {
                 var left = (i % 2) == 0;
 
-                var attr = _memory[attrIndex];
+                var attr = ReadPpu(attrIndex);
                 int basePalette = PALETTE_BG;
                 if (attr > 0)
                 {
@@ -308,11 +275,11 @@ namespace NES
                 }
 
                 attrIndex += i % 2;
-                var spriteIndex = _memory[index];
+                var spriteIndex = ReadPpu(index);
                 var memIndex = spriteIndex * 16 + actualBgY + 0x1000;
 
-                int value1 = _memory[memIndex];
-                int value2 = _memory[memIndex + 8];
+                int value1 = ReadPpu(memIndex);
+                int value2 = ReadPpu(memIndex + 8);
 
                 for (int x = 0; x < 8; x++)
                 {
@@ -320,7 +287,7 @@ namespace NES
                     
                     value1 >>= 1;
                     value2 >>= 1;
-                    _scanLineColors[bgX+(7-x)] = PpuColors.Colors[_memory[basePalette + palette] % 64];
+                    _scanLineColors[bgX+(7-x)] = PpuColors.Colors[ReadPpu(basePalette + palette) % 64];
                 }
                 
                 bgX += 8;
@@ -341,8 +308,8 @@ namespace NES
                 int yIndex = oam.SpriteIndex * 16 + actualY;
                 if (_PPURegisters.PPUCTRL.SpriteTileSelect) yIndex += 0x1000;
 
-                int value1 = _memory[yIndex];
-                int value2 = _memory[yIndex + 8];
+                int value1 = ReadPpu(yIndex);
+                int value2 = ReadPpu(yIndex + 8);
 
                 for (int x = 0; x < 8; x++)
                 {
@@ -353,7 +320,7 @@ namespace NES
 
                     if (palette > 0)
                     {
-                        _scanLineColors[oam.X + x] = PpuColors.Colors[_memory[paletteBase + palette] % 64];
+                        _scanLineColors[oam.X + x] = PpuColors.Colors[ReadPpu(paletteBase + palette) % 64];
                     }
                 }
             }
@@ -423,41 +390,25 @@ namespace NES
 
                     break;
                 case 7:
-                    if (_actualWriteAddress == 0x3F00)
-                    {
-                        for (int i = 1; i <=8; i++)
-                        {
-                            _memory[0x3F00 + 4*i] = value;
-                        }
-                    }
-                    /*
-                    if (_actualWriteAddress >= NAMETABLE_TILES && _actualWriteAddress < NAMETABLE_TILES + NAMETABLE_ONLY_LENGTH)
-                    {
-                        var a =  _actualWriteAddress-NAMETABLE_TILES;
-                        int y = a / 32;
-                        int x = a % 32;
-                        data[y, x] = value;
-                    }
-                    */
-                    _memory[_actualWriteAddress] = value;
+                    WritePpu(_actualWriteAddress, value);
                     _actualWriteAddress += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
                     break;
             }
         }
 
-        private byte[,] data = new byte[30,32];
-
-        void print()
+        private byte ReadPpu(int address)
         {
-            var writer = new BinaryWriter(new FileStream("c:/temp/map.data", FileMode.OpenOrCreate, FileAccess.Write));
-            for (int i = 0; i < 30; i++)
+            int val = _cartridge.ReadPpu((ushort)address);
+            if (val != -1)
             {
-                for (int j = 0; j < 32; j++)
-                {
-                    writer.Write(data[i,j]);
-                }
+                return (byte)val;
             }
-            writer.Close();
+            return _memory[address];
+        }
+
+        public void WritePpu(ushort address, byte data)
+        {
+            _memory[address] = data;
         }
 
         public void Reset()

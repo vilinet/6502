@@ -43,6 +43,9 @@ namespace NES.Display.SDL2
                 case SDL.SDL_Keycode.SDLK_RIGHT:
                     _keys |= 0b1000_0000;
                     break;
+                case SDL.SDL_Keycode.SDLK_ESCAPE:
+                    IsOpen = false;
+                    break;
             }
         }
 

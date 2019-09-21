@@ -36,10 +36,10 @@ namespace NES
             _controller2 = controller2;
             _display = display;
             _cpuRam = new CpuRam();
-            _cartridge = new Cartridge(0x8000, 0xBFFF);
+            _cartridge = new Cartridge();
             _bus = new Bus();
             Cpu = new Cpu(_bus);
-            _ppu = new Ppu(Cpu, _bus, _display, debugDisplay);
+            _ppu = new Ppu(Cpu, _cartridge, _display, debugDisplay);
 
             _bus.AddMap(_cpuRam);
             _bus.AddMap(_ppu);
@@ -47,12 +47,10 @@ namespace NES
             _bus.AddMap(new ControllerDevice(0x4017, _controller2));
             _bus.AddMap(new OamDma(_ppu, _bus));
             _bus.AddMap(_cartridge);
-            _bus.AddMap(new Cartridge(0xC000, 0xFFFF, _cartridge));
 
             _filePath = filePath;
+            _cartridge.LoadRom(_filePath);
             _ppu.PowerOn();
-
-            LoadCartridge();
             Cpu.Reset();
         }
 
@@ -70,7 +68,7 @@ namespace NES
 
         public void Reset()
         {
-            LoadCartridge();
+            _cartridge.LoadRom(_filePath);
             _ppu.Reset();
             Cpu.Reset();
             State = NesState.Running;
@@ -134,41 +132,6 @@ namespace NES
             Task.Factory.StartNew(Run, TaskCreationOptions.LongRunning);
         }
 
-        private void LoadCartridge()
-        {
-            int prgSize = 16 * 1024;
-            int chrSize = 8 * 1024;
-
-            int baseAddress = _cartridge.From;
-            using (var reader = new BinaryReader(new FileStream(_filePath, FileMode.Open, FileAccess.Read)))
-            {
-                //Reads header
-                for (int i = 0; i < 16; i++)
-                {
-                    if (i == 4)
-                    {
-                        var size = reader.ReadByte();
-                        prgSize *= size;
-                    }
-                    else if (i == 5)
-                    {
-                        var size = reader.ReadByte();
-                        chrSize *= size;
-                    }
-                    else reader.ReadByte();
-                }
-
-                while (prgSize-- > 0)
-                {
-                    _cartridge.Write((ushort) baseAddress++, reader.ReadByte());
-                }
-
-                baseAddress = 0;
-                while (chrSize-- > 0)
-                {
-                    _ppu.WriteChr((ushort) baseAddress++, reader.ReadByte());
-                }
-            }
-        }
+     
     }
 }
