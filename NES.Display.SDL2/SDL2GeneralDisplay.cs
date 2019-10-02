@@ -6,7 +6,10 @@ namespace NES.Display.SDL2
 {
     public class SDL2GeneralDisplay : IDisplay
     {
-        private IntPtr _bufferPtr, _window, _renderer, _texture;
+        private readonly IntPtr _bufferPtr;
+        private readonly IntPtr _window;
+        private readonly IntPtr _renderer;
+        private readonly IntPtr _texture;
         private bool _frameFinished;
         private readonly uint[] _buffer;
         protected int InternalWidth { get; }
@@ -77,6 +80,7 @@ namespace NES.Display.SDL2
                         break;
                 }
             }
+            
             if (_frameFinished)
             {
                 _frameFinished = false;

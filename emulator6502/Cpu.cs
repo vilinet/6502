@@ -109,7 +109,6 @@ namespace emulator6502
                     State = CpuState.Break;
                     break;
                 }
-
             }
         }
 

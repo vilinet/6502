@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using emulator6502;
@@ -94,20 +95,18 @@ namespace NES
             
             State = NesState.Running;
             
-            const double frameTime = 1f / 60;
-            var elapsedTime = frameTime;
-            var prev = DateTime.Now;
-
+            const double frameTime = (1f / 60)*1000;
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            
             while (State != NesState.Stopped)
             {
-                if (elapsedTime >= frameTime)
+                if (stopwatch.ElapsedMilliseconds >= frameTime)
                 {
                     if (State == NesState.Running)
                     {
                         while (!_ppu.FrameFinished)
                         {
-                            try
-                            {
                                 _ppu.Clock();
                          
                             if (_internalClock % 3 == 0)
@@ -115,22 +114,14 @@ namespace NES
                                 Cpu.Clock();
                                 _internalClock = 0;
                             }
-                            }
-                            catch (Exception E)
-                            {
-
-                            }
                             _internalClock++;
                         }
 
                         _ppu.FrameFinished = false;
                     }
 
-                    elapsedTime = 0;
+                    stopwatch.Restart();
                 }
-
-                elapsedTime += (DateTime.Now - prev).TotalSeconds;
-                prev = DateTime.Now;
             }
         }
 

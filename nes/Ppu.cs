@@ -321,9 +321,8 @@ namespace NES
                     else if (left) basePalette += bottomLeftPaletta * 4;
                     else basePalette += bottomRightPaletta * 4;
                 }
-
-              
-                var memIndex = tileIndex * 16 + actualBgY;
+                
+                var memIndex = tileIndex * 16 + actualBgY + 0x1000;
 
                 int value1 = ReadPpu(memIndex);
                 int value2 = ReadPpu(memIndex + 8);

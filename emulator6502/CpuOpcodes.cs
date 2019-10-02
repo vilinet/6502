@@ -6,6 +6,17 @@ namespace emulator6502
     internal class CpuOperations : Dictionary<OpcodeEnum, Action<ushort, BindingMode>>
     {
         private readonly Cpu _cpu;
+        private readonly Action<ushort, BindingMode>[] _opcodeActions = new Action<ushort, BindingMode>[65];
+
+        public Action<ushort, BindingMode> this[OpcodeEnum opcode]
+        {
+            get => _opcodeActions[(int)opcode];
+            set
+            {
+                Add(opcode, value);
+                _opcodeActions[(int) opcode] = value;
+            }
+        }
 
         public CpuOperations(Cpu cpu)
         {
@@ -160,7 +171,7 @@ namespace emulator6502
             if (mode == BindingMode.Implied) return _cpu.A;
             return _cpu.Bus.Read(GetAddress(param, mode));
         }
-
+        
         public byte GetValue(ushort param, BindingMode mode, out ushort address)
         {
             address = 0;
