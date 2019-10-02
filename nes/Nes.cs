@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using emulator6502;
@@ -30,7 +29,7 @@ namespace NES
         public NesState State { get; private set; }
         public Cpu Cpu { get; }
 
-        public Nes(IDisplay display, IDebugDisplay debugDisplay,  IController controller1, string filePath, IController controller2 = null)
+        public Nes(IDisplay display, IDebugDisplay debugDisplay, IController controller1, string filePath, IController controller2 = null)
         {
             _controller1 = controller1;
             _controller2 = controller2;
@@ -61,7 +60,7 @@ namespace NES
             {
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
-                    PpuColors.Colors[colorIndex++] = (uint) ((reader.ReadByte() << 16) + (reader.ReadByte() << 8) + reader.ReadByte());
+                    PpuColors.Colors[colorIndex++] = (uint)((reader.ReadByte() << 16) + (reader.ReadByte() << 8) + reader.ReadByte());
                 }
             }
         }
@@ -91,46 +90,37 @@ namespace NES
             {
                 Reset();
             }
-            
+
             State = NesState.Running;
-            
-            const double frameTime = 1f / 60;
-            var elapsedTime = frameTime;
-            var prev = DateTime.Now;
+
+            const double frameTime = (1f / 60)*1000;
+            var stopWatch = new Stopwatch();
+
+            stopWatch.Start();
 
             while (State != NesState.Stopped)
             {
-                if (elapsedTime >= frameTime)
+                if (stopWatch.ElapsedMilliseconds >= frameTime)
                 {
                     if (State == NesState.Running)
                     {
                         while (!_ppu.FrameFinished)
                         {
-                            try
-                            {
-                                _ppu.Clock();
-                         
+                            _ppu.Clock();
+
                             if (_internalClock % 3 == 0)
                             {
                                 Cpu.Clock();
                                 _internalClock = 0;
-                            }
-                            }
-                            catch (Exception E)
-                            {
-
                             }
                             _internalClock++;
                         }
 
                         _ppu.FrameFinished = false;
                     }
+                    stopWatch.Restart();
 
-                    elapsedTime = 0;
                 }
-
-                elapsedTime += (DateTime.Now - prev).TotalSeconds;
-                prev = DateTime.Now;
             }
         }
 
@@ -138,7 +128,5 @@ namespace NES
         {
             Task.Factory.StartNew(Run, TaskCreationOptions.LongRunning);
         }
-
-     
     }
 }

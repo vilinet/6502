@@ -34,7 +34,7 @@ namespace NES
         private readonly IDisplay _display;
         private readonly Cpu _cpu;
         private readonly ICartridge _cartridge;
-        private readonly uint[] _scanLineColors = new uint[300];
+        private readonly uint[] _scanLineColors = new uint[256];
         private IDebugDisplay _debugDisplay;
         private byte _ppuReadCache;
 
@@ -170,7 +170,8 @@ namespace NES
         private void DebugRender()
         {
             
-            DrawSprite(GetSprite(0, 0x10, 1, bg: true), 300, 50);
+            ////DrawSprite(GetSprite(0, 0x10, 1, bg: true), 300, 50);
+            //DebugNametable(0,0);
         }
 
         private void DebugAttributes()
@@ -196,6 +197,7 @@ namespace NES
             {
                 for (int i = 0; i < 32; i++)
                 {
+                     DrawSprite(GetSprite(1, ReadPpu(startPos++), 1), i*8, j*8);
                     Console.Write(ReadPpu(startPos++).ToString("X2") + " ");
                 }
                 Console.WriteLine();
@@ -294,7 +296,7 @@ namespace NES
 
             var bgY = y >> 3;
             var index = NAMETABLE_TILES + bgY * 32;
-            var attrIndex = NAMETABLE_TILES + NAMETABLE_ONLY_LENGTH + ((bgY >> 2) << 3);
+            var attrIndex = NAMETABLE_TILES + NAMETABLE_ONLY_LENGTH + ((bgY >> 2) << 3) ;
             var actualBgY = y % 8;
             var top = y % 64 <= 31;
             var bgX = 0;
@@ -321,9 +323,8 @@ namespace NES
                     else if (left) basePalette += bottomLeftPaletta * 4;
                     else basePalette += bottomRightPaletta * 4;
                 }
-
               
-                var memIndex = tileIndex * 16 + actualBgY;
+                var memIndex = tileIndex * 16 + actualBgY +  0x1000;
 
                 int value1 = ReadPpu(memIndex);
                 int value2 = ReadPpu(memIndex + 8);

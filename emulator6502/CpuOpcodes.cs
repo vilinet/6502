@@ -6,6 +6,14 @@ namespace emulator6502
     internal class CpuOperations : Dictionary<OpcodeEnum, Action<ushort, BindingMode>>
     {
         private readonly Cpu _cpu;
+        private readonly Action<ushort, BindingMode>[] _actionArray = new Action<ushort, BindingMode>[65];
+        private readonly Func<ushort, BindingMode, ushort>[] _bindingFuncs = new Func<ushort, BindingMode, ushort>[12];
+
+        public new Action<ushort, BindingMode> this[OpcodeEnum opcode]
+        {
+            get =>   _actionArray[(int)opcode];
+            set { _actionArray[(int)opcode] = value; Add(opcode, value); }
+        }
 
         public CpuOperations(Cpu cpu)
         {
@@ -74,6 +82,19 @@ namespace emulator6502
             this[OpcodeEnum.RLA] = Rla;
             this[OpcodeEnum.SRE] = Sre;
             this[OpcodeEnum.RRA] = Rra;
+
+            _bindingFuncs[(int)BindingMode.Immediate] = (param, mode) => param;
+            _bindingFuncs[(int)BindingMode.Implied] = (param, mode) => _cpu.A;
+            _bindingFuncs[(int)BindingMode.ZeroPage] = (param, mode) => param;
+            _bindingFuncs[(int)BindingMode.ZeroPageX] = (param, mode) => (byte)(param + _cpu.X);
+            _bindingFuncs[(int)BindingMode.ZeroPageY] = (param, mode) => (byte)(param + _cpu.Y);
+            _bindingFuncs[(int)BindingMode.Absolute] = (param, mode) => param;
+            _bindingFuncs[(int)BindingMode.Indirect] = (param, mode) => (ushort)(_cpu.Bus.Read(param) | (_cpu.Bus.Read((ushort)((param & 0xFF00) | ((param + 1) & 0x00FF))) << 8));
+            _bindingFuncs[(int)BindingMode.IndexedIndirect] = (param, mode) => ReadIndirectWord((byte)(_cpu.X + param));
+            _bindingFuncs[(int)BindingMode.IndirectIndexed] = (param, mode) => (ushort)(ReadIndirectWord((byte)param) + _cpu.Y);
+            _bindingFuncs[(int)BindingMode.Relative] = (param, mode) => (param < 128) ? (ushort)(_cpu.PC + param) : (ushort)(_cpu.PC - (ushort)((((byte)param) ^ 0xFF) + 1));
+            _bindingFuncs[(int)BindingMode.AbsoluteX] = (param, mode) => (ushort)(param + _cpu.X);
+            _bindingFuncs[(int)BindingMode.AbsoluteY] = (param, mode) => (ushort)(param + _cpu.Y);
         }
 
 
@@ -89,44 +110,10 @@ namespace emulator6502
             return (ushort)((_cpu.Bus.Read((byte)(address + 1)) << 8) + _cpu.Bus.Read(address));
         }
 
+
         public ushort GetAddress(ushort param, BindingMode mode)
         {
-            switch (mode)
-            {
-                case BindingMode.ZeroPage:
-                    return (byte)param;
-
-                case BindingMode.ZeroPageX:
-                    return (byte)(param + _cpu.X);
-
-                case BindingMode.ZeroPageY:
-                    return (byte)(param + _cpu.Y);
-                
-                case BindingMode.Absolute:
-                    return param;
-
-                case BindingMode.Indirect:
-                    return (ushort)(_cpu.Bus.Read(param) | (_cpu.Bus.Read((ushort)((param & 0xFF00) | ((param + 1) & 0x00FF))) << 8));
-
-                case BindingMode.IndexedIndirect:
-                    return ReadIndirectWord((byte)(_cpu.X + param));
-
-                case BindingMode.IndirectIndexed:
-                    return (ushort)(ReadIndirectWord((byte)param) + _cpu.Y);
-                
-                case BindingMode.Relative:
-                    if (param < 128) return (ushort)(_cpu.PC + param);
-                    else return (ushort)(_cpu.PC - (ushort)((((byte)param) ^ 0xFF) + 1));
-                
-                case BindingMode.AbsoluteX:
-                    return (ushort)(param + _cpu.X);
-
-                case BindingMode.AbsoluteY:
-                    return (ushort)(param + _cpu.Y);
-                
-                default:
-                    return 0xCCCC;
-            }
+            return _bindingFuncs[(int)mode](param, mode);
         }
 
         private void JumpRelativeLocation(bool condition, ushort relative)
@@ -139,7 +126,7 @@ namespace emulator6502
 
                 _cpu.Cycles += 1;
 
-                if((newAddress&0xFF00)!=(_cpu.PC&0xFF00))
+                if ((newAddress & 0xFF00) != (_cpu.PC & 0xFF00))
                 {
                     _cpu.Cycles += 2;
                 }
@@ -158,7 +145,7 @@ namespace emulator6502
         {
             if (mode == BindingMode.Immediate) return (byte)param;
             if (mode == BindingMode.Implied) return _cpu.A;
-            return _cpu.Bus.Read(GetAddress(param, mode));
+            return _cpu.Bus.Read(_bindingFuncs[(int)mode](param, mode));
         }
 
         public byte GetValue(ushort param, BindingMode mode, out ushort address)
@@ -166,7 +153,7 @@ namespace emulator6502
             address = 0;
             if (mode == BindingMode.Immediate) return (byte)param;
             if (mode == BindingMode.Implied) return _cpu.A;
-            address = GetAddress(param, mode);
+            address = _bindingFuncs[(int)mode](param, mode);
             return _cpu.Bus.Read(address);
         }
 
@@ -654,12 +641,12 @@ namespace emulator6502
             SetNegativeAndZeroFlag(_cpu.A);
         }
 
-        
-        private void BoundaryCyles(ushort address,  BindingMode mode)
+
+        private void BoundaryCyles(ushort address, BindingMode mode)
         {
-            if(mode  == BindingMode.AbsoluteX || mode == BindingMode.AbsoluteY || mode == BindingMode.IndirectIndexed)
+            if (mode == BindingMode.AbsoluteX || mode == BindingMode.AbsoluteY || mode == BindingMode.IndirectIndexed)
             {
-                if((0xFF00&_cpu.PC) != (address & 0xFF00))
+                if ((0xFF00 & _cpu.PC) != (address & 0xFF00))
                 {
                     _cpu.Cycles++;
                 }
