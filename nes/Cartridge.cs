@@ -1,23 +1,12 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using NES.Mapper;
 
 namespace NES
 {
-    public class RomInfo
-    {
-        public int ProgramBanks { get; internal set; }
-
-        public int CharBanks { get; internal set; }
-
-        public int MapperId { get; internal set; }
-
-        public Mirroring Mirroring { get; internal set; }
-    }
-
     public class Cartridge : ICartridge
     {
-
-        public RomInfo Info { get; set; }
+        public RomInfo Info { get; private set; }
 
         public ushort From  => 0x8000;
 
@@ -25,54 +14,56 @@ namespace NES
 
         public Mirroring Mirroring => Info.Mirroring;
 
-        private byte[] _prgRom;
-        private byte[] _chrRom;
+        private byte[] _prgRom = new byte[0xFFFF];
+        private byte[] _chrRom = new byte[0xFFFF];
+        private byte[] _trainerData = new byte[512];
 
         private IMapper _mapper;
 
+        public Cartridge()
+        {
+            _mapper = GetMapper(0);
+        }
+
+        private RomInfo LoadHeader(BinaryReader reader)
+        {
+            var info = new RomInfo();
+            var bytes = reader.ReadBytes(16);
+            
+            info.ProgramBanks = bytes[4];
+            info.CharBanks = bytes[5];
+            
+            info.Mirroring = (bytes[6] & 1) == 1 ?  Mirroring.Horizontal: Mirroring.Vertical;
+            info.HasBattery = (bytes[6] & 2) == 2;
+            info.HasTrainerData = (bytes[6] & 3) == 4;
+            info.IgnoreMirroringControl = (bytes[6] & 4) == 8;
+            info.MapperId = (bytes[6] & 0xF0) >> 4;
+            info.Unisystem = (bytes[7] & 1) == 1;
+            info.PlayChoice = (bytes[7] & 2) == 2;
+            info.NewFormat = (bytes[7] & 6) == 6;
+            info.MapperId += (bytes[7] & 0xF0);
+            
+            return info;
+        }
+
+        private IMapper GetMapper(int mapperId)
+        {
+            if(mapperId == 0) return new Mapper000(mapperId);
+            throw new Exception($"Mapper: {mapperId} is not supported!" );
+        }
+        
         public void LoadRom(string filepath)
         {
-            Info = new RomInfo();
-
             using (var reader = new BinaryReader(new FileStream(filepath, FileMode.Open, FileAccess.Read)))
             {
-                //Reads header
-                for (int i = 0; i < 16; i++)
-                {
-                    if (i == 4)
-                    {
-                        Info.ProgramBanks = reader.ReadByte();
-                        _prgRom = new byte[Info.ProgramBanks * 16 * 1024];
-                    }
-                    else if (i == 5)
-                    {
-                        Info.CharBanks = reader.ReadByte();
-                        _chrRom = new byte[Info.CharBanks * 8 * 1024];
-
-                    }
-                    else if(i == 6)
-                    {
-                        var value = reader.ReadByte();
-                        Info.Mirroring = (value & 1) == 1 ?  Mirroring.Horizontal: Mirroring.Vertical;
-                    }
-                    else
-                    {
-                        reader.ReadByte();
-                    }
-                }
-
-                for (int i = 0; i < _prgRom.Length; i++)
-                {
-                    _prgRom[i] = reader.ReadByte();
-                }
-
-                for (int i = 0; i < _chrRom.Length; i++)
-                {
-                    _chrRom[i] = reader.ReadByte();
-                }
-
-                _mapper = new Mapper000(Info.ProgramBanks);
+                Info = LoadHeader(reader);
+                
+                if(Info.HasTrainerData)  _trainerData = reader.ReadBytes(512);
+                _prgRom = reader.ReadBytes(Info.ProgramBanks * 16 * 1024);
+                _chrRom = reader.ReadBytes(Info.CharBanks * 8 * 1024);
             }
+
+            _mapper = GetMapper(Info.MapperId);
         }
 
         public int ReadPpu(ushort address)
@@ -97,7 +88,7 @@ namespace NES
 
         public byte Read(ushort address)
         {
-            return  _prgRom[_mapper.Read(address)];
+            return _prgRom[_mapper.Read(address)];
         }
     }
 }

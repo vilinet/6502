@@ -6,11 +6,13 @@ namespace NES.Mapper
 {
     public class Mapper000 : IMapper
     {
-        private int _programBanks;
+        private readonly int _programBanks;
+        
         public Mapper000(int programBanks)
         {
             _programBanks = programBanks;
         }
+        
         public int Read(ushort address)
         {
             if (address >= 0x8000 && address <= 0xFFFF)
@@ -23,7 +25,7 @@ namespace NES.Mapper
 
         public int ReadPpu(ushort address)
         {
-            if (address >= 0x0000 && address <= 0x1FFF)
+            if (address <= 0x1FFF)
             {
                 return address;
             }
@@ -32,7 +34,7 @@ namespace NES.Mapper
 
         public int WritePpu(ushort address)
         {
-            if (address >= 0x0000 && address <= 0x1FFF)
+            if (address <= 0x1FFF)
             {
                 return address;
             }

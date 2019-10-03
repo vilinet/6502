@@ -517,26 +517,20 @@ namespace NES
         {
             address &= 0x3FFF;
 
-
             if (_cartridge.WritePpu(address, value))
             {
 
             }
-            else if (address >= 0x0000 && address <= 0x1FFF)
+            else if (address <= 0x1FFF)
             {
                 _patterns[(address & 0x1000) >> 12, address & 0x0FFF] = value;
             }
             else if (address >= 0x2000 && address <= 0x3EFF)
             {
                 address &= 0x0FFF;
-                if(address == 960 && value == 255)
-                {
-                    
-                    Console.WriteLine(value);
-                }
                 if (_cartridge.Mirroring == Mirroring.Vertical)
                 {
-                    if (address >= 0x0000 && address <= 0x03FF)
+                    if (address <= 0x03FF)
                         _nameTables[0, address & 0x03FF] = value;
                     if (address >= 0x0400 && address <= 0x07FF)
                         _nameTables[1, address & 0x03FF] = value;
@@ -547,7 +541,7 @@ namespace NES
                 }
                 if (_cartridge.Mirroring == Mirroring.Horizontal)
                 {
-                    if (address >= 0x0000 && address <= 0x03FF)
+                    if (address <= 0x03FF)
                         _nameTables[0, address & 0x03FF] = value;
                     if (address >= 0x0400 && address <= 0x07FF)
                         _nameTables[0, address & 0x03FF] = value;

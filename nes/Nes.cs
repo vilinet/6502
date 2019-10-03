@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using emulator6502;
@@ -9,32 +7,22 @@ using NESInterfaces;
 
 namespace NES
 {
-    public enum NesState
-    {
-        Paused,
-        Running,
-        Stopped
-    }
-
     public class Nes
     {
         private readonly Ppu _ppu;
-        private readonly IController _controller1, _controller2;
         private readonly Bus _bus;
         private readonly Cartridge _cartridge;
-
-        private int _internalClock;
         private readonly CpuRam _cpuRam;
-        private string _filePath;
         private readonly IDisplay _display;
+        private string _filePath;
+        private int _internalClock;
 
         public NesState State { get; private set; }
+        
         public Cpu Cpu { get; }
 
-        public Nes(IDisplay display, IDebugDisplay debugDisplay,  IController controller1, string filePath, IController controller2 = null)
+        public Nes(IDisplay display, IDebugDisplay debugDisplay,  IController controller1, IController controller2 = null)
         {
-            _controller1 = controller1;
-            _controller2 = controller2;
             _display = display;
             _cpuRam = new CpuRam();
             _cartridge = new Cartridge();
@@ -44,13 +32,11 @@ namespace NES
 
             _bus.AddMap(_cpuRam);
             _bus.AddMap(_ppu);
-            _bus.AddMap(new ControllerDevice(0x4016, _controller1));
-            _bus.AddMap(new ControllerDevice(0x4017, _controller2));
+            _bus.AddMap(new ControllerDevice(0x4016, controller1));
+            _bus.AddMap(new ControllerDevice(0x4017, controller2));
             _bus.AddMap(new OamDma(_ppu, _bus));
             _bus.AddMap(_cartridge);
-
-            _filePath = filePath;
-            _cartridge.LoadRom(_filePath);
+            
             _ppu.PowerOn();
             Cpu.Reset();
         }
@@ -65,6 +51,12 @@ namespace NES
                     PpuColors.Colors[colorIndex++] = (uint) ((reader.ReadByte() << 16) + (reader.ReadByte() << 8) + reader.ReadByte());
                 }
             }
+        }
+
+        public void LoadRom(string filePath)
+        {
+            _filePath = filePath;
+            Reset();
         }
 
         public void Reset()
@@ -95,33 +87,31 @@ namespace NES
             
             State = NesState.Running;
             
-            const double frameTime = (1f / 60)*1000;
+            const double frameTime = (1f / 60) * 1000;
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            
+            int fps = 0;
             while (State != NesState.Stopped)
             {
-                if (stopwatch.ElapsedMilliseconds >= frameTime)
+                if (!(stopwatch.ElapsedMilliseconds >= frameTime)) continue;
+                if (State != NesState.Running) continue;
+                
+                stopwatch.Restart();
+                
+                while (!_ppu.FrameFinished)
                 {
-                    if (State == NesState.Running)
-                    {
-                        while (!_ppu.FrameFinished)
-                        {
-                                _ppu.Clock();
+                    _ppu.Clock();
                          
-                            if (_internalClock % 3 == 0)
-                            {
-                                Cpu.Clock();
-                                _internalClock = 0;
-                            }
-                            _internalClock++;
-                        }
-
-                        _ppu.FrameFinished = false;
+                    if (_internalClock % 3 == 0)
+                    {
+                        Cpu.Clock();
+                        _internalClock = 0;
                     }
-
-                    stopwatch.Restart();
+                    _internalClock++;
                 }
+
+                fps++;
+                _ppu.FrameFinished = false;
             }
         }
 
@@ -129,7 +119,5 @@ namespace NES
         {
             Task.Factory.StartNew(Run, TaskCreationOptions.LongRunning);
         }
-
-     
     }
 }
