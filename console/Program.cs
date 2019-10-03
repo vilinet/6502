@@ -1,6 +1,4 @@
-﻿using emulator6502;
-using NES;
-using System;
+﻿using NES;
 using NES.Display.SDL2;
 
 namespace console

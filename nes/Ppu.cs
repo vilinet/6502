@@ -26,7 +26,6 @@ namespace NES
         private int[] _oamOnScanline = new int[8];
         private byte[,] _nameTables = new byte[2, NAMETABLE_FULL_LENGTH];
         private int _oamOnScanlineCount;
-        private ushort _actualAccessAddress;
         private bool _addressFull;
         private Oam[] _oams = new Oam[64];
         private short _cycle { get; set; }
@@ -37,6 +36,11 @@ namespace NES
         private readonly uint[] _scanLineColors = new uint[300];
         private IDebugDisplay _debugDisplay;
         private byte _ppuReadCache;
+
+        private LoopyRegister _vram = new LoopyRegister();
+        private LoopyRegister _tram = new LoopyRegister();
+        private byte _fineX = 0;
+
 
         public Ppu(Cpu cpu, ICartridge cartridge, IDisplay display, IDebugDisplay debugDisplay)
         {
@@ -73,8 +77,7 @@ namespace NES
 
         public void Clock()
         {
-            if ((!_PPURegisters.PPUMASK.BackgroundEnable && !_PPURegisters.PPUMASK.SpriteEnable) ||
-                _scanline >= 240 && _scanline <= 260)
+            if ((!_PPURegisters.PPUMASK.BackgroundEnable && !_PPURegisters.PPUMASK.SpriteEnable) || _scanline >= 240 && _scanline <= 260)
             {
                 if (_scanline == 241 && _cycle == 1)
                 {
@@ -355,7 +358,7 @@ namespace NES
                 int actualY = flipVer ? 7 - (_scanline - oam.Y) : (_scanline - oam.Y);
 
                 int yIndex = oam.TileIndex * 16 + actualY;
-                if (_PPURegisters.PPUCTRL.SpriteBank) yIndex += 0x1000;
+                if (_PPURegisters.PPUCTRL.PatternSprite) yIndex += 0x1000;
 
                 int value1 = ReadPpu(yIndex);
                 int value2 = ReadPpu(yIndex + 8);
@@ -385,7 +388,6 @@ namespace NES
             }
         }
 
-
         public byte Read(ushort address)
         {
             var result = (address - 0x2000) % 8;
@@ -396,11 +398,10 @@ namespace NES
                 case 1:
                     return 0;
                 case 2:
-                    var value = (byte)_PPURegisters.PPUSTATUS;
+                    var value = (_PPURegisters.PPUSTATUS & 0xE0) | (_ppuReadCache & 0x1F);
                     _PPURegisters.PPUSTATUS.VerticalBlank = true;
-                    _actualAccessAddress = 0;
                     _addressFull = false;
-                    return value;
+                    return (byte)value;
                 case 3:
                     return 0;
                 case 4:
@@ -408,15 +409,12 @@ namespace NES
                 case 5:
                     return 0;
                 case 6:
-
                     return 0;
                 case 7:
                     var data = _ppuReadCache;
-                    _ppuReadCache = ReadPpu(_actualAccessAddress);
-                    if (_actualAccessAddress >= 0x3F00) data = _ppuReadCache;
-                    
-                    _actualAccessAddress += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
-
+                    _ppuReadCache = ReadPpu(_vram.Value);
+                    if (_vram.Value >= 0x3F00) data = _ppuReadCache;
+                    _vram.Value += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
                     return data;
             }
 
@@ -430,6 +428,8 @@ namespace NES
             {
                 case 0:
                     _PPURegisters.PPUCTRL.Value = value;
+                    _tram.NametableX = (byte)(_PPURegisters.PPUCTRL.NametableX? 1  :0);
+                    _tram.NametableY = (byte)(_PPURegisters.PPUCTRL.NametableY? 1 : 0);
                     break;
                 case 1:
                     _PPURegisters.PPUMASK.Value = value;
@@ -442,24 +442,37 @@ namespace NES
                 case 4:
                     break;
                 case 5:
-                    break;
-                case 6:
-                    _PPURegisters.PPUADDR = value;
                     if (!_addressFull)
                     {
-                        _actualAccessAddress = value;
+                        _fineX = (byte)(value & 7);
+                        _tram.CoarseX =(byte)( value >> 3);
                         _addressFull = true;
                     }
                     else
                     {
-                        _actualAccessAddress = (ushort)((_actualAccessAddress << 8) + value);
+                       _tram.FineY = (byte)(value & 7);
+                        _tram.CoarseY = (byte)(value >> 3);
+                        _addressFull = false;
+                    }
+                    break;
+                case 6:
+                    if (!_addressFull)
+                    {
+                        _tram.Value = (ushort)(((value & 0x3F) << 8) | (_tram.Value& 0x00FF));
+                        _addressFull = true;
+                    }
+                    else
+                    {
+                        _tram.Value = (ushort)((_tram.Value & 0xFF00) | value);
+
+                        _vram.Value = _tram.Value;
                         _addressFull = false;
                     }
 
                     break;
                 case 7:
-                    WritePpu(_actualAccessAddress, value);
-                    _actualAccessAddress += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
+                    WritePpu(_vram.Value, value);
+                    _vram.Value += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
                     break;
             }
         }

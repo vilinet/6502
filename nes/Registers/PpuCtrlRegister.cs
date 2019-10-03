@@ -5,23 +5,23 @@ namespace NES.Registers
     public class PpuCtrlRegister : BooleanByteRegister
     {
         /// <summary>
-        /// NN
-        /// Bit 0-1
+        /// X
+        /// Bit 0
         /// </summary>
-        public byte NametableSelect
+        public bool NametableX
         {
-            get
-            {
-                int sum = 0;
-                sum+= Bit0 ? 1:0;
-                sum+= Bit1 ? 2:0;
-                return (byte)sum;
-            }
-            set
-            {
-                Bit0 = (value & 1)!=0;
-                Bit1 = (value & 2) != 0;
-            }
+            get => Bit0;
+            set => Bit0 = value;
+        }
+
+
+        /// <summary>
+        /// Y
+        /// Bit 1
+        public bool NametableY
+        {
+            get => Bit1;
+            set => Bit1 = value;
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace NES.Registers
         ///  s
         ///  Bit 3
         /// </summary>
-        public bool SpriteBank
+        public bool PatternSprite
         {
             get => Bit3;
             set => Bit3 = value;
@@ -47,7 +47,7 @@ namespace NES.Registers
         /// B
         /// Bit 4
         /// </summary>
-        public bool BackgroundBank
+        public bool PatterBackground
         {
             get => Bit4;
             set => Bit4 = value;

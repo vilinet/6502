@@ -1,6 +1,5 @@
 ﻿namespace emulator6502
 {
-
     public class BooleanByteRegister
     {
         protected bool Bit0, Bit1, Bit2, Bit3, Bit4, Bit5, Bit6, Bit7;
@@ -21,7 +20,7 @@
 
         public byte Value
         {
-            get => (byte) this;
+            get => this;
             set
             {
                 Bit0 = (value & 0b0000_0001)!=0;
