@@ -14,12 +14,12 @@ namespace NES
 
         private PpuRegisters _PPURegisters = new PpuRegisters();
 
-        private const int PALETTE_BG = 0x3F00;
-        private const int PALETTE_SPRITE = 0x3F10;
-        private const int NAMETABLE_TILES = 0X2000;
-        private const int NAMETABLE_FULL_LENGTH = 0X400;
-        private const int NAMETABLE_ONLY_LENGTH = 0X3C0;
-        private const int NAMETABLE_ATTRIBUTES = 0X23C0;
+        private const ushort PALETTE_BG = 0x3F00;
+        private const ushort PALETTE_SPRITE = 0x3F10;
+        private const ushort NAMETABLE_TILES = 0X2000;
+        private const ushort NAMETABLE_FULL_LENGTH = 0X400;
+        private const ushort NAMETABLE_ONLY_LENGTH = 0X3C0;
+        private const ushort NAMETABLE_ATTRIBUTES = 0X23C0;
 
         private byte[] _palettes = new byte[32];
         private byte[,] _patterns = new byte[2, 0x2000];
@@ -28,7 +28,7 @@ namespace NES
         private int _oamOnScanlineCount;
         private bool _addressFull;
         private Oam[] _oams = new Oam[64];
-        private short _cycle { get; set; }
+        private int _cycle { get; set; }
         private short _scanline;
         private readonly IDisplay _display;
         private readonly Cpu _cpu;
@@ -37,10 +37,17 @@ namespace NES
         private IDebugDisplay _debugDisplay;
         private byte _ppuReadCache;
 
-        private LoopyRegister _vram = new LoopyRegister();
-        private LoopyRegister _tram = new LoopyRegister();
+        private readonly LoopyRegister _vram = new LoopyRegister();
+        private readonly LoopyRegister _tram = new LoopyRegister();
         private byte _fineX = 0;
-
+        private byte _bgNextTileId = 0;
+        private byte _bgNextTileAttribute = 0;
+        private byte _bgNextTileLow = 0;
+        private byte _bgNextTileHigh = 0;
+        private ushort _bgShifterPatternLow = 0;
+        private ushort _bgShifterPatternHigh = 0;
+        private ushort _bgShifterAttributeLow = 0;
+        private ushort _bgShifterAttributeHigh = 0;
 
         public Ppu(Cpu cpu, ICartridge cartridge, IDisplay display, IDebugDisplay debugDisplay)
         {
@@ -77,69 +84,206 @@ namespace NES
 
         public void Clock()
         {
-            if ((!_PPURegisters.PPUMASK.BackgroundEnable && !_PPURegisters.PPUMASK.SpriteEnable) || _scanline >= 240 && _scanline <= 260)
+            if (_scanline >= -1 && _scanline < 240)
             {
-                if (_scanline == 241 && _cycle == 1)
+                if (_scanline == 0 && _cycle == 0)
                 {
-                    _PPURegisters.PPUSTATUS.VerticalBlank = true;
-                    _cpu.Nmi();
+                    // "Odd Frame" cycle skip
+                    _cycle = 1;
+                }
+                else if (_scanline == -1 && _cycle == 1)
+                {
+                    _PPURegisters.PPUSTATUS.VerticalBlank = false;
+                }
+                else if ((_cycle >= 2 && _cycle < 258) || (_cycle >= 321 && _cycle < 338))
+                {
+                    UpdateShifters();
+
+                    switch ((_cycle - 1) % 8)
+                    {
+                        case 0:
+                            LoadBgShifters();
+                            _bgNextTileId = ReadPpu(0x2000 | (_vram.Value & 0x0FFF));
+                            break;
+                        case 2:
+                            _bgNextTileAttribute = ReadPpu(NAMETABLE_ATTRIBUTES | (_vram.NametableY << 11)
+                                                 | (_vram.NametableX << 10)
+                                                 | ((_vram.CoarseY >> 2) << 3)
+                                                 | (_vram.CoarseX >> 2));
+
+                            if ((_vram.CoarseY & 0x02) != 0) _bgNextTileAttribute >>= 4;
+                            if ((_vram.CoarseX & 0x02) != 0) _bgNextTileAttribute >>= 2;
+
+                            _bgNextTileAttribute &= 0x03;
+                            break;
+                        case 4:
+                            _bgNextTileLow = ReadPpu(((_PPURegisters.PPUCTRL.PatternBackground ? 1 : 0) << 12)
+                                           + (_bgNextTileId << 4) + _vram.FineY);
+                            break;
+                        case 6:
+                            _bgNextTileHigh = ReadPpu(((_PPURegisters.PPUCTRL.PatternBackground ? 1 : 0) << 12)
+                                                    + (_bgNextTileId << 4) + _vram.FineY + 8);
+                            break;
+                        case 7:
+                            IncrementScrollX();
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (_cycle == 256)
+                    {
+                        IncrementScrollY();
+                    }
+                    else if (_cycle == 257)
+                    {
+                        LoadBgShifters();
+                        TransferAddressX();
+                    }
+                }
+                if (_cycle == 338 || _cycle == 340)
+                {
+                    _bgNextTileId = ReadPpu(0x2000 | (_vram.Value & 0x0FFF));
+                }
+                else if (_scanline == -1 && _cycle >= 280 && _cycle < 305)
+                {
+                    TransferAddressY();
                 }
             }
-            else if (_cycle == 0)
+            else if (_scanline == 240)
             {
-                //iddle
+                //do nothing
             }
-            else if (_cycle <= 256)
+            else if (_scanline == 241 && _cycle == 1)
             {
-                if (_scanline != -1 && _scanline != 261)
+                _PPURegisters.PPUSTATUS.VerticalBlank = true;
+                if (_PPURegisters.PPUCTRL.NmiEnabled) _cpu.Nmi();
+            }
+
+            if (_cycle > 0 && _scanline >= 0 && _cycle - 1 < 256 && _scanline < 240)
+            {
+              
+                if (_PPURegisters.PPUMASK.BackgroundEnable)
                 {
-                    _display.DrawPixel(_cycle - 1, _scanline, _scanLineColors[_cycle - 1]);
-                }
-            }
-            else if (_cycle <= 320)
-            {
-                if (_scanline == -1)
-                {
-                    _PPURegisters.OAMADDR = 0;
-                }
+                    ///TODO: fix it
+                    byte bit_mux = (byte)(0x8000 >> _fineX);
+                    bit_mux = 128;
 
-                //Cycles 257-320
-            }
-            else if (_cycle <= 336)
-            {
-                //Cycles 321-336
-            }
-            else if (_cycle <= 340)
-            {
-                //Cycles 337-340
-            }
+                    var p0_pixel = (_bgShifterPatternLow & bit_mux) != 0 ? 1 : 0;
+                    var p1_pixel = (_bgShifterPatternHigh & bit_mux) != 0 ? 1 : 0;
 
-            if (_scanline == 304 && _cycle == 280)
-            {
-                //reload scroll
-            }
+                    int bgPixel = (byte)((p1_pixel << 1) | p0_pixel);
 
-            if (_cycle >= 341)
-            {
-                _cycle = 0;
-                _scanline++;
-
-                if (_scanline >= 261)
-                {
-                    _scanline = -1;
-                    FrameFinished = true;
-
-                    DebugRender();
-                    _display.FrameFinished();
-                    _debugDisplay.FrameFinished();
-                }
-                else
-                {
-                    UpdateOamOnScanlines();
+                    // Get palette
+                    var bg_pal0 = (_bgShifterAttributeLow & bit_mux) != 0 ? 1 : 0;
+                    var bg_pal1 = (_bgShifterAttributeHigh & bit_mux) != 0 ? 1 : 0;
+                    int bgPalette = (byte)((bg_pal1 << 1) | bg_pal0);
+                    _display.DrawPixel(_cycle - 1, _scanline, GetColor(bgPalette, bgPixel));
                 }
             }
 
             _cycle++;
+            if (_cycle >= 341)
+            {
+                _cycle = 0;
+                _scanline++;
+                if (_scanline >= 261)
+                {
+                    _scanline = -1;
+                    FrameFinished = true;
+                    DebugRender();
+                    _display.FrameFinished();
+                    _debugDisplay.FrameFinished();
+                }
+            }
+        }
+
+
+        private uint GetColor(int palette, int pixel)
+        {
+            return PpuColors.Colors[ReadPpu(0x3F00 + (palette << 2) + pixel) & 0x3F];
+        }
+
+        private void TransferAddressX()
+        {
+            if (_PPURegisters.PPUMASK.BackgroundEnable || _PPURegisters.PPUMASK.SpriteEnable)
+            {
+                _vram.NametableX = _tram.NametableX;
+                _vram.CoarseX = _tram.CoarseX;
+            }
+        }
+        private void TransferAddressY()
+        {
+            if (_PPURegisters.PPUMASK.BackgroundEnable || _PPURegisters.PPUMASK.SpriteEnable)
+            {
+                _vram.NametableY = _tram.NametableY;
+                _vram.CoarseY = _tram.CoarseY;
+                _vram.FineY = _tram.FineY;
+            }
+        }
+
+        private void IncrementScrollX()
+        {
+            if (_PPURegisters.PPUMASK.BackgroundEnable || _PPURegisters.PPUMASK.SpriteEnable)
+            {
+                if (_vram.CoarseX == 31)
+                {
+                    _vram.CoarseX = 0;
+                    _vram.NametableX = (byte)(~_vram.NametableX & 1);
+                }
+                else
+                {
+                    _vram.CoarseX++;
+                }
+            }
+        }
+
+        void IncrementScrollY()
+        {
+            if (_PPURegisters.PPUMASK.BackgroundEnable || _PPURegisters.PPUMASK.SpriteEnable)
+            {
+                if (_vram.FineY < 7)
+                {
+                    _vram.FineY++;
+                }
+                else
+                {
+                    _vram.FineY = 0;
+                    if (_vram.CoarseY == 29)
+                    {
+                        _vram.CoarseY = 0;
+                        _vram.NametableY = (byte)(~_vram.NametableY & 1);
+                    }
+                    else if (_vram.CoarseY == 31)
+                    {
+                        _vram.CoarseY = 0;
+                    }
+                    else
+                    {
+                        _vram.CoarseY++;
+                    }
+                }
+            }
+        }
+
+        void UpdateShifters()
+        {
+            if (_PPURegisters.PPUMASK.BackgroundEnable)
+            {
+                _bgShifterAttributeHigh <<= 1;
+                _bgShifterAttributeLow <<= 1;
+
+                _bgShifterPatternHigh <<= 1;
+                _bgShifterPatternLow <<= 1;
+            }
+        }
+
+        private void LoadBgShifters()
+        {
+            _bgShifterPatternLow = (ushort)((_bgShifterPatternLow & 0xFF00) | _bgNextTileLow);
+            _bgShifterPatternHigh = (ushort)((_bgShifterPatternHigh & 0xFF00) | _bgNextTileHigh);
+            _bgShifterAttributeLow = (ushort)((_bgShifterAttributeLow & 0xFF00) | (((_bgNextTileAttribute & 0b01)!=0) ? 0xFF : 0x00));
+            _bgShifterAttributeHigh = (ushort)((_bgShifterAttributeHigh & 0xFF00) | (((_bgNextTileAttribute & 0b10)!=0) ? 0xFF : 0x00));
         }
 
         private void DebugPalettes(int x, int y)
@@ -152,7 +296,7 @@ namespace NES
                     DrawRectangle(
                         x + i * 8,
                         t * 8,
-                        8, 8, PpuColors.Colors[_palettes[ind]%64]);
+                        8, 8, PpuColors.Colors[_palettes[ind] % 64]);
                     ind++;
                 }
             }
@@ -172,18 +316,18 @@ namespace NES
 
         private void DebugRender()
         {
-            
+
             DrawSprite(GetSprite(0, 0x10, 1, bg: true), 300, 50);
         }
 
         private void DebugAttributes()
         {
             int index = 0;
-             for(int i=0; i<8; i++)
+            for (int i = 0; i < 8; i++)
             {
-                for(int j=0; j<8; j++)
+                for (int j = 0; j < 8; j++)
                 {
-                    Console.Write(_nameTables[0, NAMETABLE_ONLY_LENGTH+index].ToString("X2") + " ");
+                    Console.Write(_nameTables[0, NAMETABLE_ONLY_LENGTH + index].ToString("X2") + " ");
                     index += 1;
                 }
                 Console.WriteLine();
@@ -230,7 +374,7 @@ namespace NES
                     _debugDisplay.DrawPixel(i, j, sprite.data[index++]);
                 }
             }
-        } 
+        }
 
         private NesSprite GetSprite(Oam oam)
         {
@@ -324,7 +468,7 @@ namespace NES
                     else if (left) basePalette += bottomLeftPaletta * 4;
                     else basePalette += bottomRightPaletta * 4;
                 }
-                
+
                 var memIndex = tileIndex * 16 + actualBgY + 0x1000;
 
                 int value1 = ReadPpu(memIndex);
@@ -428,10 +572,11 @@ namespace NES
             {
                 case 0:
                     _PPURegisters.PPUCTRL.Value = value;
-                    _tram.NametableX = (byte)(_PPURegisters.PPUCTRL.NametableX? 1  :0);
-                    _tram.NametableY = (byte)(_PPURegisters.PPUCTRL.NametableY? 1 : 0);
+                    _tram.NametableX = (byte)(_PPURegisters.PPUCTRL.NametableX ? 1 : 0);
+                    _tram.NametableY = (byte)(_PPURegisters.PPUCTRL.NametableY ? 1 : 0);
                     break;
                 case 1:
+                    Console.WriteLine(value);
                     _PPURegisters.PPUMASK.Value = value;
                     break;
                 case 2:
@@ -445,12 +590,12 @@ namespace NES
                     if (!_addressFull)
                     {
                         _fineX = (byte)(value & 7);
-                        _tram.CoarseX =(byte)( value >> 3);
+                        _tram.CoarseX = (byte)(value >> 3);
                         _addressFull = true;
                     }
                     else
                     {
-                       _tram.FineY = (byte)(value & 7);
+                        _tram.FineY = (byte)(value & 7);
                         _tram.CoarseY = (byte)(value >> 3);
                         _addressFull = false;
                     }
@@ -458,7 +603,7 @@ namespace NES
                 case 6:
                     if (!_addressFull)
                     {
-                        _tram.Value = (ushort)(((value & 0x3F) << 8) | (_tram.Value& 0x00FF));
+                        _tram.Value = (ushort)(((value & 0x3F) << 8) | (_tram.Value & 0x00FF));
                         _addressFull = true;
                     }
                     else
@@ -580,6 +725,7 @@ namespace NES
             _addressFull = false;
             _cycle = 0;
             _scanline = -1;
+            _bgNextTileId = _bgNextTileAttribute = _bgNextTileLow = _bgNextTileHigh = 0;
             _PPURegisters.PPUCTRL.Value = 0;
             _PPURegisters.PPUMASK.Value = (byte)(_PPURegisters.PPUMASK.Value | 0b1000000);
             _PPURegisters.PPUSTATUS.Value &= 0b10111111;

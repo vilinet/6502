@@ -47,7 +47,7 @@ namespace NES.Registers
         /// B
         /// Bit 4
         /// </summary>
-        public bool PatterBackground
+        public bool PatternBackground
         {
             get => Bit4;
             set => Bit4 = value;

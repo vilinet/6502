@@ -53,7 +53,7 @@ namespace NES.Display.SDL2
         {
             for (int i = 0; i < InternalHeight; i++)
             {
-                DrawPixel(241, i, 0xffffff);
+                DrawPixel(256, i, 0xffffff);
             }
         }
 
