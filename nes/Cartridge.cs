@@ -48,7 +48,7 @@ namespace NES
 
         private IMapper GetMapper(int mapperId)
         {
-            if(mapperId == 0) return new Mapper000(mapperId);
+            if(mapperId == 0) return new Mapper000(Info?.ProgramBanks??0);
             throw new Exception($"Mapper: {mapperId} is not supported!" );
         }
         
