@@ -122,7 +122,7 @@ namespace NES
                             break;
                         case 6:
                             _bgNextTileHigh = ReadPpu(((_PPURegisters.PPUCTRL.PatternBackground ? 1 : 0) << 12)
-                                                    + (_bgNextTileId << 4) + _vram.FineY + 8);
+                                                    + (_bgNextTileId << 4) + (_vram.FineY) + 8);
                             break;
                         case 7:
                             IncrementScrollX();
@@ -130,18 +130,18 @@ namespace NES
                         default:
                             break;
                     }
-
-                    if (_cycle == 256)
-                    {
-                        IncrementScrollY();
-                    }
-                    else if (_cycle == 257)
-                    {
-                        LoadBgShifters();
-                        TransferAddressX();
-                    }
                 }
-                if (_cycle == 338 || _cycle == 340)
+
+                if (_cycle == 256)
+                {
+                    IncrementScrollY();
+                }
+                else if (_cycle == 257)
+                {
+                    LoadBgShifters();
+                    TransferAddressX();
+                }
+                else if (_cycle == 338 || _cycle == 340)
                 {
                     _bgNextTileId = ReadPpu(0x2000 | (_vram.Value & 0x0FFF));
                 }
@@ -162,12 +162,11 @@ namespace NES
 
             if (_cycle > 0 && _scanline >= 0 && _cycle - 1 < 256 && _scanline < 240)
             {
-              
+
                 if (_PPURegisters.PPUMASK.BackgroundEnable)
                 {
                     ///TODO: fix it
-                    byte bit_mux = (byte)(0x8000 >> _fineX);
-                    bit_mux = 128;
+                    var bit_mux = (ushort)(0x8000 >> _fineX);
 
                     var p0_pixel = (_bgShifterPatternLow & bit_mux) != 0 ? 1 : 0;
                     var p1_pixel = (_bgShifterPatternHigh & bit_mux) != 0 ? 1 : 0;
@@ -178,7 +177,7 @@ namespace NES
                     var bg_pal0 = (_bgShifterAttributeLow & bit_mux) != 0 ? 1 : 0;
                     var bg_pal1 = (_bgShifterAttributeHigh & bit_mux) != 0 ? 1 : 0;
                     int bgPalette = (byte)((bg_pal1 << 1) | bg_pal0);
-                    _display.DrawPixel(_cycle - 1, _scanline, GetColor(bgPalette, bgPixel));
+                    _display.DrawPixel(_cycle - 1, _scanline, GetColorFromPalette(bgPalette, bgPixel));
                 }
             }
 
@@ -199,7 +198,7 @@ namespace NES
         }
 
 
-        private uint GetColor(int palette, int pixel)
+        private uint GetColorFromPalette(int palette, int pixel)
         {
             return PpuColors.Colors[ReadPpu(0x3F00 + (palette << 2) + pixel) & 0x3F];
         }
@@ -282,8 +281,8 @@ namespace NES
         {
             _bgShifterPatternLow = (ushort)((_bgShifterPatternLow & 0xFF00) | _bgNextTileLow);
             _bgShifterPatternHigh = (ushort)((_bgShifterPatternHigh & 0xFF00) | _bgNextTileHigh);
-            _bgShifterAttributeLow = (ushort)((_bgShifterAttributeLow & 0xFF00) | (((_bgNextTileAttribute & 0b01)!=0) ? 0xFF : 0x00));
-            _bgShifterAttributeHigh = (ushort)((_bgShifterAttributeHigh & 0xFF00) | (((_bgNextTileAttribute & 0b10)!=0) ? 0xFF : 0x00));
+            _bgShifterAttributeLow = (ushort)((_bgShifterAttributeLow & 0xFF00) | (((_bgNextTileAttribute & 0b01) != 0) ? 0xFF : 0x00));
+            _bgShifterAttributeHigh = (ushort)((_bgShifterAttributeHigh & 0xFF00) | (((_bgNextTileAttribute & 0b10) != 0) ? 0xFF : 0x00));
         }
 
         private void DebugPalettes(int x, int y)
@@ -308,7 +307,6 @@ namespace NES
             {
                 for (int j = y; j < y + height; j++)
                 {
-                    var str = color.ToString("X6");
                     _debugDisplay.DrawPixel(i, j, color);
                 }
             }
@@ -316,7 +314,7 @@ namespace NES
 
         private void DebugRender()
         {
-
+            DebugPpuMemory();
             DrawSprite(GetSprite(0, 0x10, 1, bg: true), 300, 50);
         }
 
@@ -348,7 +346,37 @@ namespace NES
                 Console.WriteLine();
             }
             Console.WriteLine();
+        }
 
+        private void DebugPpuMemory()
+        {
+            int x = 260;
+            int y = 0;
+            for (int i = 0; i < 256; i++)
+            {
+                DrawSprite(GetSprite(0, i, 0, bg: true), x, y);
+                x += 8;
+                if (i % 16 == 0 && i != 0)
+                {
+                    x = 260;
+                    y += 8;
+                }
+
+            }
+
+            x = 260;
+            y = 256;
+            for (int i = 0; i < 256; i++)
+            {
+                //  DrawSprite(GetSprite(1, i, 0, bg: true), x, y);
+                x += 8;
+                if (i % 16 == 0 && i != 0)
+                {
+                    x = 260;
+                    y += 8;
+                }
+
+            }
         }
 
         private void DebugOam(int x, int y)
@@ -576,7 +604,6 @@ namespace NES
                     _tram.NametableY = (byte)(_PPURegisters.PPUCTRL.NametableY ? 1 : 0);
                     break;
                 case 1:
-                    Console.WriteLine(value);
                     _PPURegisters.PPUMASK.Value = value;
                     break;
                 case 2:
