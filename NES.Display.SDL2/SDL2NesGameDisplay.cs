@@ -89,7 +89,7 @@ namespace NES.Display.SDL2
             }
         }
 
-        public SDL2NesGameDisplay(string title, int width, int height, int internalResWidth, int internalResHeight, int x = 0, int y = 0):
-            base(title, width, height, internalResWidth, internalResHeight, x, y) {}
+        public SDL2NesGameDisplay(string title, int width, int height, int internalResWidth, int internalResHeight, int x = 0, int y = 0,  string fontFile = null, int? fontSize = null):
+            base(title, width, height, internalResWidth, internalResHeight, x, y, fontFile, fontSize) {}
     }
 }

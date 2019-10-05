@@ -3,9 +3,9 @@
     <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
-
-
+  
   <ItemGroup>
     <ProjectReference Include="..\emulator6502\emulator6502.csproj" />
     <ProjectReference Include="..\NES.Display.SDL2\NES.Display.SDL2.csproj" />
@@ -14,6 +14,9 @@
 
 
   <ItemGroup>
+    <None Update="coder.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="nestest.nes">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

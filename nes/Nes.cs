@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using emulator6502;
 using NES.Interfaces;
@@ -16,12 +18,36 @@ namespace NES
         private readonly IDisplay _display;
         private string _filePath;
         private int _internalClock;
+        private bool _stop = false;
 
         public NesState State { get; private set; }
-        
+
         public Cpu Cpu { get; }
 
-        public Nes(IDisplay display, IDebugDisplay debugDisplay,  IController controller1, IController controller2 = null)
+        private float _speed = 1;
+        public float Speed
+        {
+            get
+            {
+                return _speed;
+            }
+            set
+            {
+                _speed = value;
+                if (value <= 0)
+                {
+                    _speed = 0;
+                    Pause();
+                }
+                else if(State == NesState.Paused)
+                {
+                    Resume();
+                }
+            }
+        }
+        public int ActualFps { get; private set; }
+
+        public Nes(IDisplay display, IDebugDisplay debugDisplay, IController controller1, IController controller2 = null)
         {
             _display = display;
             _cpuRam = new CpuRam();
@@ -36,7 +62,7 @@ namespace NES
             _bus.AddMap(new ControllerDevice(0x4017, controller2));
             _bus.AddMap(new OamDma(_ppu, _bus));
             _bus.AddMap(_cartridge);
-            
+
             _ppu.PowerOn();
             Cpu.Reset();
         }
@@ -48,7 +74,7 @@ namespace NES
             {
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
-                    PpuColors.Colors[colorIndex++] = (uint) ((reader.ReadByte() << 16) + (reader.ReadByte() << 8) + reader.ReadByte());
+                    PpuColors.Colors[colorIndex++] = (uint)((reader.ReadByte() << 16) + (reader.ReadByte() << 8) + reader.ReadByte());
                 }
             }
         }
@@ -61,6 +87,8 @@ namespace NES
 
         public void Reset()
         {
+            State = NesState.Stopped;
+            Thread.Sleep(50);
             _cartridge.LoadRom(_filePath);
             _ppu.Reset();
             Cpu.Reset();
@@ -70,6 +98,11 @@ namespace NES
         public void Pause()
         {
             State = NesState.Paused;
+        }
+
+        public void Stop()
+        {
+            _stop = true;
         }
 
         public void Resume()
@@ -84,40 +117,57 @@ namespace NES
             {
                 Reset();
             }
-            
+
             State = NesState.Running;
-            
-            const double frameTime = (1f / 60) * 1000;
+
             var stopwatch = new Stopwatch();
+            var fpsTimer = new Stopwatch();
             stopwatch.Start();
+            fpsTimer.Start();
             int fps = 0;
-            while (State != NesState.Stopped)
+
+            while (!_stop)
             {
+                double frameTime = 1 / (Speed * 60)*1000;
+                if(Speed == 0) ActualFps = 0;
                 if (!(stopwatch.ElapsedMilliseconds >= frameTime)) continue;
-                if (State != NesState.Running) continue;
-                
                 stopwatch.Restart();
-                
-                while (!_ppu.FrameFinished)
+                if (State != NesState.Running) continue;
+
+                if (State == NesState.Running)
                 {
-                    _ppu.Clock();
-                         
-                    if (_internalClock % 3 == 0)
+                    while (!_ppu.FrameFinished)
                     {
-                        Cpu.Clock();
-                        _internalClock = 0;
+                        _ppu.Clock();
+
+                        if (_internalClock % 3 == 0)
+                        {
+                            Cpu.Clock();
+                            _internalClock = 0;
+                        }
+                        _internalClock++;
                     }
-                    _internalClock++;
                 }
 
                 fps++;
+                if(fpsTimer.ElapsedMilliseconds >= 1000)
+                {
+                    ActualFps = fps;
+                    Console.WriteLine(fps);
+                    fps = 0;
+                    fpsTimer.Restart();
+                }
+                
                 _ppu.FrameFinished = false;
             }
         }
 
         public void RunOnThread()
         {
-            Task.Factory.StartNew(Run, TaskCreationOptions.LongRunning);
+            var thread = new Thread(Run);
+            thread.Priority = ThreadPriority.Highest;
+            thread.IsBackground = true;
+            thread.Start();
         }
     }
 }
