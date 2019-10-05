@@ -1,5 +1,4 @@
-﻿using System.IO.Enumeration;
-using emulator6502;
+﻿using emulator6502;
 using NESInterfaces;
 
 namespace NES
