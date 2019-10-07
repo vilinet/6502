@@ -8,14 +8,13 @@ namespace console
 {
     public class MyNesDisplay : SDL2NesGameDisplay
     {
-        private Nes _nes;
+        private readonly Nes _nes;
         private readonly bool _debug;
 
         public MyNesDisplay(bool debug = false) : base("NES", debug?256 * 4:256, debug?240 * 2:240, debug?256 * 2: 256, 240, fontSize: 17)
         {
             _debug = debug;
-            _nes = new Nes(this, debug?this:null, this);
-            _nes.LoadPalette("mesen.pal");
+            _nes = new Nes(this, debug?this:null, this);;
             _nes.LoadRom("./smb.nes");
             _nes.RunOnThread();
         }
@@ -26,10 +25,7 @@ namespace console
 
         protected override void OnBeforeRender()
         {
-            if(_debug == true)
-            {
-                base.OnBeforeRender();
-            }
+            if(_debug == true) base.OnBeforeRender();
         }
 
         protected override void OnKeyDown(SDL.SDL_Keysym e)
