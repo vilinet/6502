@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using emulator6502;
 using NES.Interfaces;
 using NES.Registers;
@@ -12,42 +11,47 @@ namespace NES
         public ushort To { get; } = 0x2007;
         public bool FrameFinished { get; internal set; }
 
-        private PpuRegisters _PPURegisters = new PpuRegisters();
-
-        private const ushort PALETTE_BG = 0x3F00;
+        private const ushort PALETTE = 0x3F00;
         private const ushort PALETTE_SPRITE = 0x3F10;
-        private const ushort NAMETABLE_TILES = 0X2000;
+        private const ushort NAMETABLE = 0X2000;
         private const ushort NAMETABLE_FULL_LENGTH = 0X400;
         private const ushort NAMETABLE_ONLY_LENGTH = 0X3C0;
         private const ushort NAMETABLE_ATTRIBUTES = 0X23C0;
 
-        private byte[] _palettes = new byte[32];
-        private byte[,] _patterns = new byte[2, 0x2000];
-        private byte[,] _nameTables = new byte[2, NAMETABLE_FULL_LENGTH];
-        private bool _addressFull;
-        private Oam[] _oams = new Oam[64];
-        private int _cycle { get; set; }
-        private short _scanline;
         private readonly IDisplay _display;
         private readonly Cpu _cpu;
         private readonly ICartridge _cartridge;
-        private IDebugDisplay _debugDisplay;
-        private byte _ppuReadCache;
+        private readonly IDebugDisplay _debugDisplay;
+
+        private readonly PpuRegisters _PPURegisters = new PpuRegisters();
+        public PpuRegisters PPURegisters => _PPURegisters;
+
+        private readonly byte[] _palettes = new byte[32];
+        private readonly byte[,] _patterns = new byte[2, 0x2000];
+        private readonly byte[,] _nameTables = new byte[2, NAMETABLE_FULL_LENGTH];
+
+        private readonly Oam[] _oams = new Oam[64];
+        public Oam[] Oams => _oams;
 
         private readonly LoopyRegister _vram = new LoopyRegister();
         private readonly LoopyRegister _tram = new LoopyRegister();
         private readonly Oam[] _spriteScanline = new Oam[8];
         private readonly byte[] _spriteShifterPatternLow = new byte[8];
         private readonly byte[] _spriteShifterPatternHigh = new byte[8];
-        private byte _fineX = 0;
-        private byte _bgNextTileId = 0;
-        private byte _bgNextTileAttribute = 0;
-        private byte _bgNextTileLow = 0;
-        private byte _bgNextTileHigh = 0;
-        private ushort _bgShifterPatternLow = 0;
-        private ushort _bgShifterPatternHigh = 0;
-        private ushort _bgShifterAttributeLow = 0;
-        private ushort _bgShifterAttributeHigh = 0;
+
+        private bool _addressFull;
+        private int _cycle { get; set; }
+        private short _scanline;
+        private byte _ppuReadCache;
+        private byte _fineX;
+        private byte _bgNextTileId;
+        private byte _bgNextTileAttribute;
+        private byte _bgNextTileLow;
+        private byte _bgNextTileHigh;
+        private ushort _bgShifterPatternLow;
+        private ushort _bgShifterPatternHigh;
+        private ushort _bgShifterAttributeLow;
+        private ushort _bgShifterAttributeHigh;
         private int _spriteCount;
         private bool _spriteZeroHitPossible;
         private bool _spriteZeroBeingRendered;
@@ -68,22 +72,21 @@ namespace NES
             switch (prop)
             {
                 case 0:
-                    _oams[index].y = data;
+                    _oams[index].Y = data;
                     break;
                 case 1:
-                    _oams[index].id = data;
+                    _oams[index].Id = data;
                     break;
                 case 2:
-                    _oams[index].attribute = data;
+                    _oams[index].Attributes = data;
                     break;
                 case 3:
-                    _oams[index].x = data;
+                    _oams[index].X = data;
                     break;
             }
 
             _PPURegisters.OAMADDR++;
         }
-
 
         public void Clock()
         {
@@ -91,7 +94,6 @@ namespace NES
             {
                 if (_scanline == 0 && _cycle == 0)
                 {
-                    // "Odd Frame" cycle skip
                     _cycle = 1;
                 }
                 else if (_scanline == -1 && _cycle == 1)
@@ -114,7 +116,7 @@ namespace NES
                     {
                         case 0:
                             LoadBgShifters();
-                            _bgNextTileId = ReadPpu(0x2000 | (_vram.Value & 0x0FFF));
+                            _bgNextTileId = ReadPpu(NAMETABLE | (_vram.Value & 0x0FFF));
                             break;
                         case 2:
                             _bgNextTileAttribute = ReadPpu(NAMETABLE_ATTRIBUTES | (_vram.NametableY << 11)
@@ -154,7 +156,7 @@ namespace NES
                 }
                 else if (_cycle == 338 || _cycle == 340)
                 {
-                    _bgNextTileId = ReadPpu(0x2000 | (_vram.Value & 0x0FFF));
+                    _bgNextTileId = ReadPpu(NAMETABLE | (_vram.Value & 0x0FFF));
                 }
                 else if (_scanline == -1 && _cycle >= 280 && _cycle < 305)
                 {
@@ -177,9 +179,9 @@ namespace NES
 
                     while (index < 64 && _spriteCount < 9)
                     {
-                        int diff = _scanline - _oams[index].y;
+                        int diff = _scanline - _oams[index].Y;
 
-                        if (diff >= 0 && diff < ( _PPURegisters.PPUCTRL.SpriteHeight? 16 : 8))
+                        if (diff >= 0 && diff < (_PPURegisters.PPUCTRL.SpriteHeight ? 16 : 8))
                         {
                             if (_spriteCount < 8)
                             {
@@ -194,7 +196,7 @@ namespace NES
                         }
 
                         index++;
-                    } 
+                    }
                     _PPURegisters.PPUSTATUS.SpriteOverflow = (_spriteCount > 8);
                 }
                 if (_cycle == 340)
@@ -206,67 +208,67 @@ namespace NES
 
                         if (!_PPURegisters.PPUCTRL.SpriteHeight)
                         {
-                            if ((_spriteScanline[i].attribute & 0x80) == 0 )
+                            if ((_spriteScanline[i].Attributes & 0x80) == 0)
                             {
-                                sprite_pattern_addr_lo =(ushort)(
-                                    ((_PPURegisters.PPUCTRL.PatternSprite?1:0) << 12)  // Which Pattern Table? 0KB or 4KB offset
-                                    | (_spriteScanline[i].id << 4)  // Which Cell? Tile ID * 16 (16 bytes per tile)
-                                    | (_scanline - _spriteScanline[i].y)); // Which Row in cell? (0->7)
+                                sprite_pattern_addr_lo = (ushort)(
+                                    ((_PPURegisters.PPUCTRL.PatternSprite ? 1 : 0) << 12)
+                                    | (_spriteScanline[i].Id << 4)
+                                    | (_scanline - _spriteScanline[i].Y));
 
                             }
                             else
                             {
                                 sprite_pattern_addr_lo = (ushort)(
-                                    ((_PPURegisters.PPUCTRL.PatternSprite ? 1 : 0) << 12)  // Which Pattern Table? 0KB or 4KB offset
-                                    | (_spriteScanline[i].id << 4)  // Which Cell? Tile ID * 16 (16 bytes per tile)
-                                    | (7-(_scanline - _spriteScanline[i].y))); // Which Row in cell? (0->7)
+                                    ((_PPURegisters.PPUCTRL.PatternSprite ? 1 : 0) << 12)
+                                    | (_spriteScanline[i].Id << 4)
+                                    | (7 - (_scanline - _spriteScanline[i].Y)));
                             }
 
                         }
                         else
                         {
-                            if ((_spriteScanline[i].attribute & 0x80) == 0)
+                            if ((_spriteScanline[i].Attributes & 0x80) == 0)
                             {
-                                if (_scanline - _spriteScanline[i].y < 8)
+                                if (_scanline - _spriteScanline[i].Y < 8)
                                 {
                                     sprite_pattern_addr_lo = (ushort)(
-                                        ((_spriteScanline[i].id & 0x01) << 12)  // Which Pattern Table? 0KB or 4KB offset
-                                        | ((_spriteScanline[i].id & 0xFE) << 4)  // Which Cell? Tile ID * 16 (16 bytes per tile)
-                                        | ((_scanline - _spriteScanline[i].y) & 0x07)); // Which Row in cell? (0->7)
+                                        ((_spriteScanline[i].Id & 0x01) << 12)
+                                        | ((_spriteScanline[i].Id & 0xFE) << 4)
+                                        | ((_scanline - _spriteScanline[i].Y) & 0x07));
                                 }
                                 else
                                 {
                                     sprite_pattern_addr_lo = (ushort)(
-                                        ((_spriteScanline[i].id & 0x01) << 12)  // Which Pattern Table? 0KB or 4KB offset
-                                        | (((_spriteScanline[i].id & 0xFE) + 1) << 4)  // Which Cell? Tile ID * 16 (16 bytes per tile)
-                                        | ((_scanline - _spriteScanline[i].y) & 0x07)); // Which Row in cell? (0->7)
+                                        ((_spriteScanline[i].Id & 0x01) << 12)
+                                        | (((_spriteScanline[i].Id & 0xFE) + 1) << 4)
+                                        | ((_scanline - _spriteScanline[i].Y) & 0x07));
                                 }
                             }
                             else
                             {
-                                if (_scanline - _spriteScanline[i].y < 8)
+                                if (_scanline - _spriteScanline[i].Y < 8)
                                 {
-                                    sprite_pattern_addr_lo =(ushort)(
-                                        ((_spriteScanline[i].id & 0x01) << 12)
-                                        | (((_spriteScanline[i].id & 0xFE) + 1) << 4)
-                                        | (7 - (_scanline - _spriteScanline[i].y) & 0x07)); 
+                                    sprite_pattern_addr_lo = (ushort)(
+                                        ((_spriteScanline[i].Id & 0x01) << 12)
+                                        | (((_spriteScanline[i].Id & 0xFE) + 1) << 4)
+                                        | (7 - (_scanline - _spriteScanline[i].Y) & 0x07));
                                 }
                                 else
                                 {
                                     sprite_pattern_addr_lo =
-                                        (ushort)(((_spriteScanline[i].id & 0x01) << 12)  
-                                        | ((_spriteScanline[i].id & 0xFE) << 4)
-                                        | (7 - (_scanline - _spriteScanline[i].y) & 0x07));
+                                        (ushort)(((_spriteScanline[i].Id & 0x01) << 12)
+                                        | ((_spriteScanline[i].Id & 0xFE) << 4)
+                                        | (7 - (_scanline - _spriteScanline[i].Y) & 0x07));
                                 }
                             }
                         }
 
-                        sprite_pattern_addr_hi = (ushort)(sprite_pattern_addr_lo+ 8);
+                        sprite_pattern_addr_hi = (ushort)(sprite_pattern_addr_lo + 8);
 
                         sprite_pattern_bits_lo = ReadPpu(sprite_pattern_addr_lo);
                         sprite_pattern_bits_hi = ReadPpu(sprite_pattern_addr_hi);
 
-                        if ((_spriteScanline[i].attribute & 0x40) > 0)
+                        if ((_spriteScanline[i].Attributes & 0x40) > 0)
                         {
                             sprite_pattern_bits_lo = FlipByte(sprite_pattern_bits_lo);
                             sprite_pattern_bits_hi = FlipByte(sprite_pattern_bits_hi);
@@ -291,8 +293,8 @@ namespace NES
             if (_cycle > 0 && _scanline >= 0 && _cycle - 1 < 256 && _scanline < 240)
             {
 
-                byte bg_pixel = 0x00;   // The 2-bit pixel to be rendered
-                byte bg_palette = 0x00; // The 3-bit index of the palette the pixel indexes
+                byte bg_pixel = 0x00;
+                byte bg_palette = 0x00;
 
                 if (_PPURegisters.PPUMASK.BackgroundEnable)
                 {
@@ -308,9 +310,10 @@ namespace NES
                     bg_palette = (byte)((bg_pal1 << 1) | bg_pal0);
                 }
 
-                byte fg_pixel = 0x00;  
+                byte fg_pixel = 0x00;
                 byte fg_palette = 0x00;
                 byte fg_priority = 0x00;
+
 
                 if (_PPURegisters.PPUMASK.SpriteEnable)
                 {
@@ -318,14 +321,14 @@ namespace NES
 
                     for (byte i = 0; i < _spriteCount; i++)
                     {
-                        if (_spriteScanline[i].x == 0)
+                        if (_spriteScanline[i].X == 0)
                         {
-                            byte fg_pixel_lo = (byte)((_spriteShifterPatternLow[i] & 0x80)>0?1:0);
+                            byte fg_pixel_lo = (byte)((_spriteShifterPatternLow[i] & 0x80) > 0 ? 1 : 0);
                             byte fg_pixel_hi = (byte)((_spriteShifterPatternHigh[i] & 0x80) > 0 ? 1 : 0);
                             fg_pixel = (byte)((fg_pixel_hi << 1) | fg_pixel_lo);
-                            fg_palette = (byte)((_spriteScanline[i].attribute & 0x03) + 0x04);
-                            fg_priority =(byte)( (_spriteScanline[i].attribute & 0x20) == 0?1:0);
-                            
+                            fg_palette = (byte)((_spriteScanline[i].Attributes & 0x03) + 0x04);
+                            fg_priority = (byte)((_spriteScanline[i].Attributes & 0x20) == 0 ? 1 : 0);
+
                             if (fg_pixel != 0)
                             {
                                 if (i == 0) _spriteZeroBeingRendered = true;
@@ -335,8 +338,7 @@ namespace NES
                     }
                 }
 
-
-                byte pixel = 0x00;  
+                byte pixel = 0x00;
                 byte palette = 0x00;
 
                 if (bg_pixel == 0 && fg_pixel == 0)
@@ -383,7 +385,7 @@ namespace NES
                     }
                 }
 
-               _display.DrawPixel(_cycle - 1, _scanline, GetColorFromPalette(palette, pixel));
+                _display.DrawPixel(_cycle - 1, _scanline, GetColorFromPalette(palette, pixel));
             }
 
             _cycle++;
@@ -397,22 +399,22 @@ namespace NES
                     FrameFinished = true;
                     DebugRender();
                     _display.FrameFinished();
-                    _debugDisplay.FrameFinished();
+                    _debugDisplay?.FrameFinished();
                 }
             }
         }
 
         private byte FlipByte(byte b)
         {
-                b= (byte)((b & 0xF0) >> 4 | (b & 0x0F) << 4);
-                b = (byte)((b & 0xCC) >> 2 | (b & 0x33) << 2);
-                b = (byte)((b & 0xAA) >> 1 | (b & 0x55) << 1);
-                return b;
+            b = (byte)((b & 0xF0) >> 4 | (b & 0x0F) << 4);
+            b = (byte)((b & 0xCC) >> 2 | (b & 0x33) << 2);
+            b = (byte)((b & 0xAA) >> 1 | (b & 0x55) << 1);
+            return b;
         }
 
         private uint GetColorFromPalette(int palette, int pixel)
         {
-            return PpuColors.Colors[ReadPpu(0x3F00 + (palette << 2) + pixel) & 0x3F];
+            return PpuColors.Colors[ReadPpu(PALETTE + (palette << 2) + pixel) & 0x3F];
         }
 
         private void TransferAddressX()
@@ -491,9 +493,9 @@ namespace NES
             {
                 for (int i = 0; i < _spriteCount; i++)
                 {
-                    if (_spriteScanline[i].x > 0)
+                    if (_spriteScanline[i].X > 0)
                     {
-                        _spriteScanline[i].x--;
+                        _spriteScanline[i].X--;
                     }
                     else
                     {
@@ -519,11 +521,7 @@ namespace NES
             {
                 for (int i = 0; i < 4; i++)
                 {
-                    DrawRectangle(
-                        x + i * 8,
-                        t * 8,
-                        8, 8, PpuColors.Colors[_palettes[ind] % 64]);
-                    ind++;
+                    DrawRectangle(x + i * 8, t * 8, 8, 8, PpuColors.Colors[_palettes[ind] % 64]); ind++;
                 }
             }
         }
@@ -541,7 +539,7 @@ namespace NES
 
         private void DebugRender()
         {
-            //DebugPpuMemory();
+            DebugPpuMemory();
         }
 
         private void DebugAttributes()
@@ -562,7 +560,7 @@ namespace NES
 
         private void DebugNametable(int x, int y)
         {
-            var startPos = NAMETABLE_TILES;
+            var startPos = NAMETABLE;
             for (int j = 0; j < 30; j++)
             {
                 for (int i = 0; i < 32; i++)
@@ -625,16 +623,16 @@ namespace NES
             {
                 for (int i = x; i < x + 8; i++)
                 {
-                    _debugDisplay.DrawPixel(i, j, sprite.data[index++]);
+                    _debugDisplay?.DrawPixel(i, j, sprite.data[index++]);
                 }
             }
         }
 
         private NesSprite GetSprite(Oam oam)
         {
-            bool flipHor = (oam.attribute & 0b01000000) != 0;
-            bool flipVer = (oam.attribute & 0b10000000) != 0;
-            return GetSprite(1, oam.id, oam.attribute & 3, flipVer, flipHor);
+            bool flipHor = (oam.Attributes & 0b01000000) != 0;
+            bool flipVer = (oam.Attributes & 0b10000000) != 0;
+            return GetSprite(1, oam.Id, oam.Attributes & 3, flipVer, flipHor);
         }
 
         private NesSprite GetSprite(int bankIndex, int spriteIndex, int paletteIndex = -1, bool bg = false, bool flipVertical = false, bool flipHorizontal = false)
@@ -642,7 +640,7 @@ namespace NES
             if (paletteIndex == -1) paletteIndex = 1;
             var sprite = new NesSprite();
 
-            var paletteBase = !bg ? paletteIndex * 4 + PALETTE_SPRITE : paletteIndex * 4 + PALETTE_BG;
+            var paletteBase = !bg ? paletteIndex * 4 + PALETTE_SPRITE : paletteIndex * 4 + PALETTE;
 
             var addr = spriteIndex * 16 + bankIndex * 0x1000;
             var index = 0;
@@ -670,14 +668,6 @@ namespace NES
             return sprite;
         }
 
-        private struct Oam
-        {
-            public byte y { get; set; }
-            public byte id { get; set; }
-            public byte attribute { get; set; }
-            public byte x { get; set; }
-        }
-
         public byte Read(ushort address)
         {
             var result = (address - 0x2000) % 8;
@@ -703,7 +693,7 @@ namespace NES
                 case 7:
                     var data = _ppuReadCache;
                     _ppuReadCache = ReadPpu(_vram.Value);
-                    if (_vram.Value >= 0x3F00) data = _ppuReadCache;
+                    if (_vram.Value >= PALETTE) data = _ppuReadCache;
                     _vram.Value += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
                     return data;
             }
@@ -777,7 +767,7 @@ namespace NES
             {
                 return _patterns[(address & 0x1000) >> 1, address & 0x0FFF];
             }
-            else if (address >= 0x2000 && address <= 0x3EFF)
+            else if (address >= NAMETABLE && address <= 0x3EFF)
             {
                 address &= 0x0FFF;
                 if (_cartridge.Mirroring == Mirroring.Vertical)
@@ -804,7 +794,7 @@ namespace NES
                         return _nameTables[1, address & 0x03FF];
                 }
             }
-            else if (address >= 0x3F00 && address <= 0x3FFF)
+            else if (address >= PALETTE && address <= 0x3FFF)
             {
                 address &= 0x001F;
                 if (address == 0x0010) address = 0x0000;
@@ -828,7 +818,7 @@ namespace NES
             {
                 _patterns[(address & 0x1000) >> 12, address & 0x0FFF] = value;
             }
-            else if (address >= 0x2000 && address <= 0x3EFF)
+            else if (address >= NAMETABLE && address <= 0x3EFF)
             {
                 address &= 0x0FFF;
                 if (_cartridge.Mirroring == Mirroring.Vertical)
@@ -854,7 +844,7 @@ namespace NES
                         _nameTables[1, address & 0x03FF] = value;
                 }
             }
-            else if (address >= 0x3F00)
+            else if (address >= PALETTE)
             {
                 address &= 0x001F;
                 if (address == 0x0010) address = 0x0000;
@@ -879,7 +869,6 @@ namespace NES
             _PPURegisters.PPUSCROLL = 0;
             _PPURegisters.PPUADDR = 0;
         }
-
         public void PowerOn()
         {
             _addressFull = false;
@@ -893,5 +882,6 @@ namespace NES
             _PPURegisters.PPUSCROLL = 0;
             _PPURegisters.PPUADDR = 0;
         }
+
     }
 }

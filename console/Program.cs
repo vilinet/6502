@@ -14,7 +14,7 @@ namespace console
         public MyNesDisplay(bool debug = false) : base("NES", debug?256 * 4:256, debug?240 * 2:240, debug?256 * 2: 256, 240, fontSize: 17)
         {
             _debug = debug;
-            _nes = new Nes(this, this, this);
+            _nes = new Nes(this, debug?this:null, this);
             _nes.LoadPalette("mesen.pal");
             _nes.LoadRom("./smb.nes");
             _nes.RunOnThread();
