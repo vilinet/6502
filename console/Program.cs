@@ -14,7 +14,7 @@ namespace console
         {
             _nes = new Nes(this, this, this);
             _nes.LoadPalette("mesen.pal");
-            _nes.LoadRom("./donkey.nes");
+            _nes.LoadRom("./smb.nes");
             //nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
             _nes.RunOnThread();
         }
