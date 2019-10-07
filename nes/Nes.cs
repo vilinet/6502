@@ -121,16 +121,14 @@ namespace NES
             State = NesState.Running;
 
             var stopwatch = new Stopwatch();
-            var fpsTimer = new Stopwatch();
             stopwatch.Start();
-            fpsTimer.Start();
-            int fps = 0;
 
             while (!_stop)
             {
                 double frameTime = 1 / (Speed * 60)*1000;
                 if(Speed == 0) ActualFps = 0;
                 if (!(stopwatch.ElapsedMilliseconds >= frameTime)) continue;
+                ActualFps = (int)Math.Round(1000.0 / stopwatch.ElapsedMilliseconds);
                 stopwatch.Restart();
                 if (State != NesState.Running) continue;
 
@@ -147,15 +145,6 @@ namespace NES
                         }
                         _internalClock++;
                     }
-                }
-
-                fps++;
-                if(fpsTimer.ElapsedMilliseconds >= 1000)
-                {
-                    ActualFps = fps;
-                    Console.WriteLine(fps);
-                    fps = 0;
-                    fpsTimer.Restart();
                 }
                 
                 _ppu.FrameFinished = false;

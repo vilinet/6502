@@ -34,12 +34,30 @@ namespace NES.Display.SDL2
 
             SDL.SDL_Init(SDL.SDL_INIT_VIDEO);
 
-            _window = SDL.SDL_CreateWindow(title,
-                SDL.SDL_WINDOWPOS_CENTERED,
-                SDL.SDL_WINDOWPOS_CENTERED,
-                width,
-                height, SDL.SDL_WindowFlags.SDL_WINDOW_RESIZABLE
-            );
+            try
+            {
+                _window = SDL.SDL_CreateWindow(title,
+                    SDL.SDL_WINDOWPOS_CENTERED,
+                    SDL.SDL_WINDOWPOS_CENTERED,
+                    width,
+                    height,
+                    SDL.SDL_WindowFlags.SDL_WINDOW_RESIZABLE | SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN
+                );
+            }
+            catch { }
+            finally
+            {
+                if (_window == IntPtr.Zero)
+                {
+                    _window = SDL.SDL_CreateWindow(title,
+                   SDL.SDL_WINDOWPOS_CENTERED,
+                   SDL.SDL_WINDOWPOS_CENTERED,
+                   width,
+                   height,
+                   SDL.SDL_WindowFlags.SDL_WINDOW_RESIZABLE);
+                }
+            }
+
 
             if (x > 0 && y > 0)
                 SDL.SDL_SetWindowPosition(_window, x, y);
