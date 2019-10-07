@@ -27,6 +27,11 @@ namespace console
         {
             switch (e.sym)
             {
+                case SDL.SDL_Keycode.SDLK_SPACE:
+                    if (_nes.State == NesState.Running)
+                        _nes.Pause();
+                    else _nes.Resume();
+                    break;
                 case SDL.SDL_Keycode.SDLK_r: _nes.Reset(); break;
                 case SDL.SDL_Keycode.SDLK_KP_PLUS : _nes.Speed += 0.1f; break;
                 case SDL.SDL_Keycode.SDLK_KP_MINUS: _nes.Speed -= 0.1f; break;
