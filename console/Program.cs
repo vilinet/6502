@@ -9,18 +9,27 @@ namespace console
     public class MyNesDisplay : SDL2NesGameDisplay
     {
         private Nes _nes;
+        private readonly bool _debug;
 
-        public MyNesDisplay() : base("NES", 256 * 4, 240 * 2, 256 * 2, 240, fontSize: 20)
+        public MyNesDisplay(bool debug = false) : base("NES", debug?256 * 4:256, debug?240 * 2:240, debug?256 * 2: 256, 240, fontSize: 17)
         {
+            _debug = debug;
             _nes = new Nes(this, this, this);
             _nes.LoadPalette("mesen.pal");
             _nes.LoadRom("./smb.nes");
-            //nes.Cpu.BeforeOperationExecuted += Cpu_BeforeOperationExecuted;
             _nes.RunOnThread();
         }
         public override void OnRenderText(IDrawText renderer)
         {
-            renderer.DrawText(1f, 1f, "FPS: " + _nes.ActualFps.ToString(), 0x8800FABA, TextAlignment.HorizontalRight | TextAlignment.VerticalBottom);
+            renderer.DrawText(0f, 0f, "FPS: " + _nes.ActualFps.ToString(),0xFFFFFF00 , TextAlignment.Default);
+        }
+
+        protected override void OnBeforeRender()
+        {
+            if(_debug == true)
+            {
+                base.OnBeforeRender();
+            }
         }
 
         protected override void OnKeyDown(SDL.SDL_Keysym e)
