@@ -69,7 +69,8 @@ namespace emulator6502
             X = snapshot.X;
             Y = snapshot.Y;
             Cycles = snapshot.Cycles;
-
+            PC = snapshot.PC;
+            SP = snapshot.SP;
         }
 
     public bool Clock()
