@@ -14,6 +14,5 @@ namespace NES
         bool WritePpu(ushort address, byte val);
 
         Mirroring Mirroring { get; }
-
     }
 }

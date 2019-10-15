@@ -50,7 +50,7 @@ namespace emulator6502
             for (int i = 0; i < 256; i++)
             {
                 var op = opcodes[i];
-                if (op != null &&  op.Enum == opcodeEnum) return op;
+                if (op?.Enum == opcodeEnum) return op;
             }
 
             return null;
