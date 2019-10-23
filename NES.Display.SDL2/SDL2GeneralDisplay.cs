@@ -12,7 +12,8 @@ namespace NES.Display.SDL2
         private readonly IntPtr _window;
         private readonly IntPtr _texture;
         private readonly IDrawText _drawText;
-        private readonly uint[] _buffer;
+
+        protected uint[] Pixels { get; set; }
         private bool _frameFinished;
 
         protected int InternalWidth { get; }
@@ -62,14 +63,14 @@ namespace NES.Display.SDL2
             if (x > 0 && y > 0)
                 SDL.SDL_SetWindowPosition(_window, x, y);
 
-            _buffer = new uint[internalWidth * internalHeight * 4];
+            Pixels = new uint[internalWidth * internalHeight * 4];
 
             _renderer = SDL.SDL_CreateRenderer(_window, -1, 0);
             _texture = SDL.SDL_CreateTexture(_renderer, SDL.SDL_PIXELFORMAT_ARGB8888, (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, internalWidth, internalHeight);
             _drawText = new DrawTextImpl(this);
             SDL.SDL_GL_SetSwapInterval(0);
 
-            unsafe { fixed (uint* t = &_buffer[0]) _bufferPtr = new IntPtr(t); }
+            unsafe { fixed (uint* t = &Pixels[0]) _bufferPtr = new IntPtr(t); }
 
             IsOpen = true;
         }
@@ -81,12 +82,17 @@ namespace NES.Display.SDL2
 
         public void DrawPixel(int x, int y, uint color)
         {
-            _buffer[y * InternalWidth + x] = color;
+            Pixels[y * InternalWidth + x] = color;
         }
 
         public void FrameFinished()
         {
             _frameFinished = true;
+        }
+
+        protected virtual void OnEffectApply(int width, int height, uint[] pixels)
+        {
+            
         }
 
         public void Render()
@@ -124,6 +130,7 @@ namespace NES.Display.SDL2
                 _frameFinished = false;
                 OnBeforeRender();
                 SDL.SDL_RenderClear(_renderer);
+                OnEffectApply(InternalWidth, InternalHeight, Pixels);
                 SDL.SDL_UpdateTexture(_texture, IntPtr.Zero, _bufferPtr, InternalWidth * sizeof(uint));
                 SDL.SDL_RenderCopy(_renderer, _texture, IntPtr.Zero, IntPtr.Zero);
                 OnRenderText(_drawText);

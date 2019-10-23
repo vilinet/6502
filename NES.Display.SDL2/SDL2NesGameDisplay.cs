@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using NES.Interfaces;
 using NESInterfaces;
 using SDL2;
 
 namespace NES.Display.SDL2
 {
-    public class SDL2NesGameDisplay: SDL2GeneralDisplay, IController, IDebugDisplay
+    public class SDL2NesGameDisplay: SDL2GeneralDisplay, IController
     {
         private byte _keys;
 
@@ -88,6 +89,8 @@ namespace NES.Display.SDL2
                     break;
             }
         }
+
+
 
         public SDL2NesGameDisplay(string title, int width, int height, int internalResWidth, int internalResHeight, int x = 0, int y = 0,  string fontFile = null, int? fontSize = null):
             base(title, width, height, internalResWidth, internalResHeight, x, y, fontFile, fontSize) {}

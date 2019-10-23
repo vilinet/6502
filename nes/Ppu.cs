@@ -540,6 +540,7 @@ namespace NES
         private void DebugRender()
         {
             DebugPpuMemory();
+            //DebugNametable();
         }
 
         private void DebugAttributes()
@@ -558,18 +559,17 @@ namespace NES
             System.Console.WriteLine();
         }
 
-        private void DebugNametable(int x, int y)
+        private void DebugNametable()
         {
             var startPos = NAMETABLE;
+
             for (int j = 0; j < 30; j++)
             {
                 for (int i = 0; i < 32; i++)
                 {
-                    Console.Write(ReadPpu(startPos++).ToString("X2") + " ");
+                    _debugDisplay?.DrawText(j * 8, i * 8, ReadPpu(startPos++).ToString("X2"));
                 }
-                Console.WriteLine();
             }
-            Console.WriteLine();
         }
 
         private void DebugPpuMemory()
@@ -578,28 +578,29 @@ namespace NES
             int y = 0;
             for (int i = 0; i < 256; i++)
             {
-                DrawSprite(GetSprite(0, i, 0, bg: true), x, y);
-                x += 8;
                 if (i % 16 == 0 && i != 0)
                 {
                     x = 260;
                     y += 8;
                 }
-
+               // _debugDisplay?.DrawText(x+2, y+2, i.ToString("X2"));
+                DrawSprite(GetSprite(0, i, 0, bg: true), x, y);
+                x += 8;
             }
 
             x = 260;
-            y = 256;
+            y = 120;
+
             for (int i = 0; i < 256; i++)
             {
-                //  DrawSprite(GetSprite(1, i, 0, bg: true), x, y);
-                x += 8;
                 if (i % 16 == 0 && i != 0)
                 {
                     x = 260;
                     y += 8;
                 }
-
+               // _debugDisplay?.DrawText(x + 2, y + 2, i.ToString("X2"));
+                DrawSprite(GetSprite(1, i, 3, bg: true), x, y);
+                x += 8;
             }
         }
 
@@ -640,7 +641,7 @@ namespace NES
             if (paletteIndex == -1) paletteIndex = 1;
             var sprite = new NesSprite();
 
-            var paletteBase = !bg ? paletteIndex * 4 + PALETTE_SPRITE : paletteIndex * 4 + PALETTE;
+            var paletteBase = (!bg ? PALETTE_SPRITE :  PALETTE)+paletteIndex * 4 ;
 
             var addr = spriteIndex * 16 + bankIndex * 0x1000;
             var index = 0;
@@ -704,6 +705,7 @@ namespace NES
         public void Write(ushort address, byte value)
         {
             var result = (address - 0x2000) % 8;
+
             switch (result)
             {
                 case 0:
@@ -783,7 +785,6 @@ namespace NES
                 }
                 if (_cartridge.Mirroring == Mirroring.Horizontal)
                 {
-                    // Horizontal
                     if (address >= 0x0000 && address <= 0x03FF)
                         return _nameTables[0, address & 0x03FF];
                     if (address >= 0x0400 && address <= 0x07FF)

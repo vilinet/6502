@@ -7,6 +7,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\CodeTerminal\CodeTerminal.csproj" />
     <ProjectReference Include="..\emulator6502\emulator6502.csproj" />
     <ProjectReference Include="..\NES.Display.SDL2\NES.Display.SDL2.csproj" />
     <ProjectReference Include="..\NES\NES.csproj" />

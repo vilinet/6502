@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using emulator6502;
 using NES.Interfaces;
 using NESInterfaces;
@@ -18,7 +17,7 @@ namespace NES
         private readonly IDisplay _display;
         private string _filePath;
         private int _internalClock;
-        private bool _stop = false;
+        private bool _stop;
 
         public NesState State { get; private set; }
 
@@ -126,7 +125,7 @@ namespace NES
             while (!_stop)
             {
                 double frameTime = 1 / (Speed * 60)*1000;
-                if(Speed == 0) ActualFps = 0;
+                if(Speed <= 0.0001) ActualFps = 0;
                 if (!(stopwatch.ElapsedMilliseconds >= frameTime)) continue;
                 ActualFps = (int)Math.Round(1000.0 / stopwatch.ElapsedMilliseconds);
                 stopwatch.Restart();
@@ -153,9 +152,7 @@ namespace NES
 
         public void RunOnThread()
         {
-            var thread = new Thread(Run);
-            thread.Priority = ThreadPriority.Highest;
-            thread.IsBackground = true;
+            var thread = new Thread(Run) {Priority = ThreadPriority.Highest, IsBackground = true};
             thread.Start();
         }
     }
