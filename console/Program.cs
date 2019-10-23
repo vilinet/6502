@@ -20,7 +20,7 @@ namespace console
             debug ? 256 * 2 : 256, 240, fontSize: 15)
         {
             _debug = debug;
-            _nes = new Nes(this, debug ? this : null, this);
+            _nes = new Nes(this, debug ? this : null, Controller1);
             _nes.LoadRom("./smb.nes");
             _nes.RunOnThread();
         }
@@ -149,16 +149,14 @@ namespace console
     {
         static void Main(string[] args)
         {
-            var terminal = new Terminal();
-
-            terminal.Run();
-            /*
+            // new Terminal().Run();
+            
             var app = new MyNesApp(true);
 
             while (app.IsOpen)
             {
                 app.Render();
-            }*/
+            }
 
         }
     }

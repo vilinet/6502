@@ -883,6 +883,10 @@ namespace NES
             _PPURegisters.PPUSCROLL = 0;
             _PPURegisters.PPUADDR = 0;
         }
+    }
 
+    public class NesSprite
+    {
+        public uint[] data = new uint[8 * 8];
     }
 }

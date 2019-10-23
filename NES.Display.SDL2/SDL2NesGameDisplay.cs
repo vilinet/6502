@@ -1,53 +1,54 @@
 ﻿using System;
 using System.Collections.Generic;
+using NES.Controllers;
 using NES.Interfaces;
 using NESInterfaces;
 using SDL2;
 
 namespace NES.Display.SDL2
 {
-    public class SDL2NesGameDisplay: SDL2GeneralDisplay, IController
+    public class SDL2NesGameDisplay: SDL2GeneralDisplay, IDebugDisplay
     {
-        private byte _keys;
+        protected IController Controller1 { get; }
 
-        public byte GetState()
+        private void HandleController(SDL.SDL_Keycode code, bool pressed)
         {
-            return _keys;
+            switch (code)
+            {
+                case SDL.SDL_Keycode.SDLK_a:
+                    Controller1.SetButtonState(ControllerButton.A, pressed);
+                    break;
+                case SDL.SDL_Keycode.SDLK_s:
+                    Controller1.SetButtonState(ControllerButton.B, pressed);
+                    break;
+                case SDL.SDL_Keycode.SDLK_BACKSPACE:
+                    Controller1.SetButtonState(ControllerButton.Select, pressed);
+                    break;
+                case SDL.SDL_Keycode.SDLK_RETURN:
+                    Controller1.SetButtonState(ControllerButton.Start, pressed);
+                    break;
+                case SDL.SDL_Keycode.SDLK_UP:
+                    Controller1.SetButtonState(ControllerButton.Up, pressed);
+                    break;
+                case SDL.SDL_Keycode.SDLK_DOWN:
+                    Controller1.SetButtonState(ControllerButton.Down, pressed);
+                    break;
+                case SDL.SDL_Keycode.SDLK_LEFT:
+                    Controller1.SetButtonState(ControllerButton.Left, pressed);
+                    break;
+                case SDL.SDL_Keycode.SDLK_RIGHT:
+                    Controller1.SetButtonState(ControllerButton.Right, pressed);
+                    break;
+            }
+        }
+        protected override void OnKeyUp(SDL.SDL_Keysym e)
+        {
+            HandleController(e.sym, false);
         }
 
         protected override void OnKeyDown(SDL.SDL_Keysym e)
         {
-            var code = e.sym;
-            switch (code)
-            {
-                case SDL.SDL_Keycode.SDLK_a:
-                    _keys |= 0b0000_0001;
-                    break;
-                case SDL.SDL_Keycode.SDLK_s:
-                    _keys |= 0b0000_0010;
-                    break;
-                case SDL.SDL_Keycode.SDLK_BACKSPACE:
-                    _keys |= 0b0000_0100;
-                    break;
-                case SDL.SDL_Keycode.SDLK_RETURN:
-                    _keys |= 0b0000_1000;
-                    break;
-                case SDL.SDL_Keycode.SDLK_UP:
-                    _keys |= 0b0001_0000;
-                    break;
-                case SDL.SDL_Keycode.SDLK_DOWN:
-                    _keys |= 0b0010_0000;
-                    break;
-                case SDL.SDL_Keycode.SDLK_LEFT:
-                    _keys |= 0b0100_0000;
-                    break;
-                case SDL.SDL_Keycode.SDLK_RIGHT:
-                    _keys |= 0b1000_0000;
-                    break;
-                case SDL.SDL_Keycode.SDLK_ESCAPE:
-                    IsOpen = false;
-                    break;
-            }
+            HandleController(e.sym, true);
         }
 
         protected override void OnBeforeRender()
@@ -58,41 +59,14 @@ namespace NES.Display.SDL2
             }
         }
 
-        protected override void OnKeyUp(SDL.SDL_Keysym e)
-        {
-            var code = e.sym;
-            switch (code)
-            {
-                case SDL.SDL_Keycode.SDLK_a:
-                    _keys &= 0b11111110;
-                    break;
-                case SDL.SDL_Keycode.SDLK_s:
-                    _keys &= 0b11111101;
-                    break;
-                case SDL.SDL_Keycode.SDLK_BACKSPACE:
-                    _keys &= 0b11111011;
-                    break;
-                case SDL.SDL_Keycode.SDLK_RETURN:
-                    _keys &= 0b11110111;
-                    break;
-                case SDL.SDL_Keycode.SDLK_UP:
-                    _keys &= 0b11101111;
-                    break;
-                case SDL.SDL_Keycode.SDLK_DOWN:
-                    _keys &= 0b11011111;
-                    break;
-                case SDL.SDL_Keycode.SDLK_LEFT:
-                    _keys &= 0b10111111;
-                    break;
-                case SDL.SDL_Keycode.SDLK_RIGHT:
-                    _keys &= 0b01111111;
-                    break;
-            }
+        public SDL2NesGameDisplay(string title, int width, int height, int internalResWidth, int internalResHeight, int x = 0, int y = 0,  string fontFile = null, int? fontSize = null):
+            base(title, width, height, internalResWidth, internalResHeight, x, y, fontFile, fontSize) {
+            Controller1 = new Controller();
         }
 
-
-
-        public SDL2NesGameDisplay(string title, int width, int height, int internalResWidth, int internalResHeight, int x = 0, int y = 0,  string fontFile = null, int? fontSize = null):
-            base(title, width, height, internalResWidth, internalResHeight, x, y, fontFile, fontSize) {}
+        public void DrawText(int x, int y, string text)
+        {
+            
+        }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace NES
 {
-    public class OamDma : IAddressable
+    internal class OamDma : IAddressable
     {
         private IAddressable _bus;
         private Ppu _ppu;

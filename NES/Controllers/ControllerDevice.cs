@@ -3,14 +3,16 @@ using NESInterfaces;
 
 namespace NES
 {
-    public class ControllerDevice : IAddressable
+    internal class ControllerDevice : IAddressable
     {
         public ushort From { get; }
         public ushort To { get; }
 
         private readonly IController _controller;
+        
         private byte _readCount = 8;
         private byte _stateCache = 0;
+
         public ControllerDevice(ushort port, IController controller)
         {
             From = port;
@@ -20,7 +22,7 @@ namespace NES
         
         public void Write(ushort address, byte value)
         {
-            
+     
         }
         
         public byte Read(ushort address)

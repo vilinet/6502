@@ -20,6 +20,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\NES.Interfaces\NES.Interfaces.csproj" />
+      <ProjectReference Include="..\NES\NES.csproj" />
     </ItemGroup>
 
     <ItemGroup>
