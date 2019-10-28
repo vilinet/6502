@@ -1,6 +1,6 @@
 ﻿using NESInterfaces;
 
-namespace NES.Controllers
+namespace NES.Interfaces
 {
     public class Controller : IController
     {

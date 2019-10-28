@@ -6,6 +6,6 @@ namespace NES.Interfaces
     {
         void DrawPixel(int x, int y, uint color);
         
-        void FrameFinished();
+        void FrameDone();
     }
 }

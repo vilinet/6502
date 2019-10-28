@@ -46,14 +46,14 @@ namespace NES
         }
         public int ActualFps { get; private set; }
 
-        public Nes(IDisplay display, IDebugDisplay debugDisplay, IController controller1, IController controller2 = null)
+        public Nes(IDisplay display, IController controller1, IController controller2 = null)
         {
             _display = display;
             _cpuRam = new CpuRam();
             _cartridge = new Cartridge();
             _bus = new Bus();
             Cpu = new Cpu(_bus);
-            _ppu = new Ppu(Cpu, _cartridge, _display, debugDisplay);
+            _ppu = new Ppu(Cpu, _cartridge, _display);
 
             _bus.AddMap(_cpuRam);
             _bus.AddMap(_ppu);
@@ -154,6 +154,16 @@ namespace NES
         {
             var thread = new Thread(Run) {Priority = ThreadPriority.Highest, IsBackground = true};
             thread.Start();
+        }
+
+        public void DebugInput(char c)
+        {
+            _ppu.DebugInput(c);
+        }
+
+        public void RenderDebug(IDrawText texter)
+        {
+            _ppu.RenderDebug(texter);
         }
     }
 

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using NES.Controllers;
 using NES.Interfaces;
 using NESInterfaces;
 using SDL2;
@@ -9,6 +8,7 @@ namespace NES.Display.SDL2
 {
     public class SDL2NesGameDisplay: SDL2GeneralDisplay, IDebugDisplay
     {
+
         protected IController Controller1 { get; }
 
         private void HandleController(SDL.SDL_Keycode code, bool pressed)
@@ -39,6 +39,9 @@ namespace NES.Display.SDL2
                 case SDL.SDL_Keycode.SDLK_RIGHT:
                     Controller1.SetButtonState(ControllerButton.Right, pressed);
                     break;
+                case SDL.SDL_Keycode.SDLK_ESCAPE:
+                    IsOpen = false;
+                    break;
             }
         }
         protected override void OnKeyUp(SDL.SDL_Keysym e)
@@ -59,14 +62,25 @@ namespace NES.Display.SDL2
             }
         }
 
+        public void DrawText(int x, int y, string text)
+        {
+            if (FrameFinished)
+            {
+                float xx = (float)x / InternalWidth;
+                float yy = (float)y / InternalHeight;
+                DrawText(xx, yy, text, new SDL.SDL_Color()
+                {
+                    a = 255,
+                    r = 255,
+                    b = 255,
+                    g = 255
+                });
+            }
+        }
+
         public SDL2NesGameDisplay(string title, int width, int height, int internalResWidth, int internalResHeight, int x = 0, int y = 0,  string fontFile = null, int? fontSize = null):
             base(title, width, height, internalResWidth, internalResHeight, x, y, fontFile, fontSize) {
             Controller1 = new Controller();
-        }
-
-        public void DrawText(int x, int y, string text)
-        {
-            
         }
     }
 }
