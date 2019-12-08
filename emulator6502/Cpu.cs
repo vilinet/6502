@@ -73,10 +73,10 @@ namespace emulator6502
             SP = snapshot.SP;
         }
 
-    public bool Clock()
+        public bool Clock()
         {
-            ushort prevPC = PC;
-            ulong cycles = Cycles;
+            var prevPC = PC;
+            var cycles = Cycles;
             var entry = _opcodes[Bus.Read(PC++)];
             if (entry.Enum == OpcodeEnum.BRK) return false;
 
@@ -98,6 +98,7 @@ namespace emulator6502
         {
             if (fullOpcode.Opcode.Mode == BindingMode.Relative)
                 return _operations.GetAddress(fullOpcode.Parameter, fullOpcode.Opcode.Mode);
+            
             return _operations.GetValue(fullOpcode.Parameter, fullOpcode.Opcode.Mode);
         }
 
@@ -105,11 +106,9 @@ namespace emulator6502
         {
             while (State == CpuState.Running)
             {
-                if (!Clock())
-                {
-                    State = CpuState.Break;
-                    break;
-                }
+                if (Clock()) continue;
+                State = CpuState.Break;
+                break;
             }
         }
 
@@ -141,22 +140,19 @@ namespace emulator6502
                     State = CpuState.Paused;
                     return false;
                 }
-
             }
 
             _operations[opcode.Enum](param, opcode.Mode);
             Cycles += opcode.Cycles;
 
-            if (AfterOperationExecuted != null)
-            {
-                if (arg == null) arg = new OpcodeEventArgs(new FullOpcode(opcode, param, pos), (int)(Cycles-cycles));
-                else arg.RequestPauseExecution = false;
+            if (AfterOperationExecuted == null) return true;
+            if (arg == null) arg = new OpcodeEventArgs(new FullOpcode(opcode, param, pos), (int)(Cycles-cycles));
+            else arg.RequestPauseExecution = false;
 
-                AfterOperationExecuted?.Invoke(this, arg);
-                if (arg.RequestPauseExecution)
-                {
-                    State = CpuState.Paused;
-                }
+            AfterOperationExecuted?.Invoke(this, arg);
+            if (arg.RequestPauseExecution)
+            {
+                State = CpuState.Paused;
             }
 
             return true;

@@ -19,6 +19,9 @@ namespace NES
         private int _internalClock;
         private bool _stop;
 
+        public Ppu PPU => _ppu;
+        public Bus Bus => _bus;
+
         public NesState State { get; private set; }
 
         public Cpu Cpu { get; }
@@ -38,7 +41,7 @@ namespace NES
                     _speed = 0;
                     Pause();
                 }
-                else if(State == NesState.Paused)
+                else if (State == NesState.Paused)
                 {
                     Resume();
                 }
@@ -124,8 +127,8 @@ namespace NES
 
             while (!_stop)
             {
-                double frameTime = 1 / (Speed * 60)*1000;
-                if(Speed <= 0.0001) ActualFps = 0;
+                double frameTime = 1 / (Speed * 60) * 1000;
+                if (Speed <= 0.0001) ActualFps = 0;
                 if (!(stopwatch.ElapsedMilliseconds >= frameTime)) continue;
                 ActualFps = (int)Math.Round(1000.0 / stopwatch.ElapsedMilliseconds);
                 stopwatch.Restart();
@@ -135,19 +138,24 @@ namespace NES
                 {
                     while (!_ppu.FrameFinished)
                     {
-                        _ppu.Clock();
-
-                        if (_internalClock % 3 == 0)
-                        {
-                            Cpu.Clock();
-                            _internalClock = 0;
-                        }
-                        _internalClock++;
+                        Tick();
                     }
                 }
-                
+
                 _ppu.FrameFinished = false;
             }
+        }
+
+        public void Tick()
+        {
+            _ppu.Clock();
+
+            if (_internalClock % 3 == 0)
+            {
+                Cpu.Clock();
+                _internalClock = 0;
+            }
+            _internalClock++;
         }
 
         public void RunOnThread()
@@ -156,15 +164,6 @@ namespace NES
             thread.Start();
         }
 
-        public void DebugInput(char c)
-        {
-            _ppu.DebugInput(c);
-        }
-
-        public void RenderDebug(IDrawText texter)
-        {
-            _ppu.RenderDebug(texter);
-        }
     }
 
     public enum NesState

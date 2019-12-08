@@ -43,7 +43,7 @@ namespace emulator6502
             {
                 valChange = "= " + outsideParameter.ToString("X2");
             }
-            return $"{Position:X4}  {bytes.PadRight(8)}  {Format(outsideParameter)} {valChange}";
+            return $"{Position:X4}  {bytes.PadRight(10)}  {Format(outsideParameter)} {valChange}";
         }
 
         private string Format(ushort outsideParameter)
