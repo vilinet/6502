@@ -25,6 +25,9 @@
     <None Update="coder.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="first.nes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="iceclimber.nes">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

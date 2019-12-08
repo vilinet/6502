@@ -1,5 +1,4 @@
-﻿using System;
-using emulator6502;
+﻿using emulator6502;
 using NES.Interfaces;
 using NES.Registers;
 
@@ -11,12 +10,12 @@ namespace NES
         public ushort To { get; } = 0x2007;
         public bool FrameFinished { get; internal set; }
 
-        private const ushort PALETTE = 0x3F00;
-        private const ushort PALETTE_SPRITE = 0x3F10;
-        private const ushort NAMETABLE = 0X2000;
-        private const ushort NAMETABLE_FULL_LENGTH = 0X400;
-        private const ushort NAMETABLE_ONLY_LENGTH = 0X3C0;
-        private const ushort NAMETABLE_ATTRIBUTES = 0X23C0;
+        public const ushort PALETTE = 0x3F00;
+        public const ushort PALETTE_SPRITE = 0x3F10;
+        public const ushort NAMETABLE = 0X2000;
+        public const ushort NAMETABLE_FULL_LENGTH = 0X400;
+        public const ushort NAMETABLE_ONLY_LENGTH = 0X3C0;
+        public const ushort NAMETABLE_ATTRIBUTES = 0X23C0;
 
         private readonly IDisplay _display;
         private readonly Cpu _cpu;
@@ -26,11 +25,12 @@ namespace NES
         public PpuRegisters PPURegisters => _PPURegisters;
 
         private readonly byte[] _palettes = new byte[32];
+        public byte[] Palettes => _palettes;
         private readonly byte[,] _patterns = new byte[2, 0x2000];
         private readonly byte[,] _nameTables = new byte[2, NAMETABLE_FULL_LENGTH];
 
-        private readonly Oam[] _oams = new Oam[64];
-        public Oam[] Oams => _oams;
+        private readonly Oam[] _oam = new Oam[64];
+        public Oam[] Oam => _oam;
 
         private readonly LoopyRegister _vram = new LoopyRegister();
         private readonly LoopyRegister _tram = new LoopyRegister();
@@ -55,12 +55,12 @@ namespace NES
         private bool _spriteZeroHitPossible;
         private bool _spriteZeroBeingRendered;
 
-        public Ppu(Cpu cpu, ICartridge cartridge, IDisplay display)
+        public Ppu(Cpu cpu, ICartridge cartridge, IDisplay display )
         {
             _display = display;
             _cpu = cpu;
             _cartridge = cartridge;
-            for (int i = 0; i < 64; i++) _oams[i] = new Oam();
+            for (int i = 0; i < 64; i++) _oam[i] = new Oam();
         }
 
         public void WriteOAM(byte data)
@@ -70,16 +70,16 @@ namespace NES
             switch (prop)
             {
                 case 0:
-                    _oams[index].Y = data;
+                    _oam[index].Y = data;
                     break;
                 case 1:
-                    _oams[index].Id = data;
+                    _oam[index].Id = data;
                     break;
                 case 2:
-                    _oams[index].Attributes = data;
+                    _oam[index].Attributes = data;
                     break;
                 case 3:
-                    _oams[index].X = data;
+                    _oam[index].X = data;
                     break;
             }
 
@@ -177,7 +177,7 @@ namespace NES
 
                     while (index < 64 && _spriteCount < 9)
                     {
-                        int diff = _scanline - _oams[index].Y;
+                        int diff = _scanline - _oam[index].Y;
 
                         if (diff >= 0 && diff < (_PPURegisters.PPUCTRL.SpriteHeight ? 16 : 8))
                         {
@@ -188,7 +188,7 @@ namespace NES
                                     _spriteZeroHitPossible = true;
                                 }
 
-                                _spriteScanline[_spriteCount] = _oams[index];
+                                _spriteScanline[_spriteCount] = _oam[index];
                                 _spriteCount++;
                             }
                         }
@@ -510,163 +510,7 @@ namespace NES
             _bgShifterAttributeHigh = (ushort)((_bgShifterAttributeHigh & 0xFF00) | (((_bgNextTileAttribute & 0b10) != 0) ? 0xFF : 0x00));
         }
 
-        private void DebugPalettes()
-        {
-            int ind = 0;
-            for (int t = 0; t < 8; t++)
-            {
-                for (int i = 0; i < 4; i++)
-                {
-                    DrawRectangle(256 + i * 8, t * 8 + 256, 8, 8, PpuColors.Colors[_palettes[ind] % 64]);
-                    ind++;
-                }
-            }
-        }
-
-        private void DrawRectangle(int x, int y, int width, int height, uint color)
-        {
-            for (int i = x; i < x + width; i++)
-            {
-                for (int j = y; j < y + height; j++)
-                {
-                    _display.DrawPixel(i, j, color);
-                }
-            }
-        }
-
-        public void DebugInput(char c)
-        {
-            if (c >= 26 && c <= 26 + 3) bank1Palette = c - 26;
-            if (c >= 30 && c <= 33) bank2Palette = c - 30;
-        }
-
-        public void RenderDebug(IDrawText texter)
-        {
-            DebugPpuMemory(texter);
-            DebugNametable(texter);
-            DebugPalettes();
-            DebugOam(texter);
-        }
-
-        private void DebugNametable(IDrawText texter)
-        {
-            for (int n = 0; n < 4; n++)
-            {
-                var startPos = NAMETABLE + n * NAMETABLE_FULL_LENGTH;
-                int offsetX = 256 + 8 * 20 + (n % 2 == 0 ? 0 : 30 * 8);
-                int offsetY = n < 2 ? 0 : 240;
-
-                for (int j = 0; j < 30; j++)
-                {
-                    for (int i = 0; i < 32; i++)
-                    {
-                        var ind = ReadPpu(startPos++);
-                        DrawSprite(GetSprite(1, ind), i * 8 + offsetX, j * 8 + offsetY);
-                        texter.DrawText(i * 8 + offsetX, j * 8 + offsetY, ind.ToString("X2"));
-                    }
-                }
-            }
-        }
-
-        private int bank1Palette = 0, bank2Palette = 0;
-
-        private void DebugPpuMemory(IDrawText texter)
-        {
-            int x = 260;
-            int y = 0;
-            for (int i = 0; i < 256; i++)
-            {
-                if (i % 16 == 0 && i != 0)
-                {
-                    x = 260;
-                    y += 8;
-                }
-                texter.DrawText(x + 4, y + 4, i.ToString("X2"));
-                DrawSprite(GetSprite(0, i, bank1Palette, bg: true), x, y);
-                x += 8;
-            }
-
-            x = 260;
-            y = 120;
-
-            for (int i = 0; i < 256; i++)
-            {
-                if (i % 16 == 0 && i != 0)
-                {
-                    x = 260;
-                    y += 8;
-                }
-                texter.DrawText(x + 4, y + 4, i.ToString("X2"));
-                DrawSprite(GetSprite(1, i, bank2Palette, bg: true), x, y);
-                x += 8;
-            }
-        }
-
-        private void DebugOam(IDrawText texter)
-        {
-            for (int i = 0; i < 2; i++)
-            {
-                for (int j = 0; j < 32; j++)
-                {
-                    var oam = _oams[i*32+j];
-                    DrawSprite(GetSprite(oam), i * 128, j * 8 + 260);
-                    texter.DrawText(i * 128 + 8, j * 8 + 260, $"{oam.Id}: X:{oam.X:X2} Y:{oam.X:X2} A: {oam.Attributes}");
-                }
-            }
-        }
-
-        private void DrawSprite(NesSprite sprite, int x, int y)
-        {
-            int index = 0;
-            for (int j = y; j < y + 8; j++)
-            {
-                for (int i = x; i < x + 8; i++)
-                {
-                    _display.DrawPixel(i, j, sprite.data[index++]);
-                }
-            }
-        }
-
-        private NesSprite GetSprite(Oam oam)
-        {
-            bool flipHor = (oam.Attributes & 0b01000000) != 0;
-            bool flipVer = (oam.Attributes & 0b10000000) != 0;
-            return GetSprite(1, oam.Id, oam.Attributes & 3, flipVer, flipHor);
-        }
-
-        private NesSprite GetSprite(int bankIndex, int spriteIndex, int paletteIndex = -1, bool bg = false, bool flipVertical = false, bool flipHorizontal = false)
-        {
-            if (paletteIndex == -1) paletteIndex = 1;
-            var sprite = new NesSprite();
-
-            var paletteBase = (!bg ? PALETTE_SPRITE : PALETTE) + paletteIndex * 4;
-
-            var addr = spriteIndex * 16 + bankIndex * 0x1000;
-            var index = 0;
-
-            for (int j = 0; j < 8; j++)
-            {
-                int value1 = ReadPpu(addr);
-                int value2 = ReadPpu(addr + 8);
-
-                for (int x = 0; x < 8; x++)
-                {
-                    var palette = ((value2 & 1) << 1) + (value1 & 1);
-
-                    sprite.data[index + (7 - x)] = PpuColors.Colors[ReadPpu(paletteBase + palette) % 64];
-
-                    value1 >>= 1;
-                    value2 >>= 1;
-
-                }
-
-                index += 8;
-                addr++;
-            }
-
-            return sprite;
-        }
-
+     
         public byte Read(ushort address)
         {
             var result = (address - 0x2000) % 8;
@@ -757,7 +601,7 @@ namespace NES
             }
         }
 
-        private byte ReadPpu(int address)
+        public byte ReadPpu(int address)
         {
             address &= 0x3FFF;
             int val = _cartridge.ReadPpu((ushort)address);

@@ -8,7 +8,7 @@ namespace emulator6502
         private readonly Cpu _cpu;
         private readonly Action<ushort, BindingMode>[] _opcodeActions = new Action<ushort, BindingMode>[65];
 
-        public Action<ushort, BindingMode> this[OpcodeEnum opcode]
+        public new Action<ushort, BindingMode> this[OpcodeEnum opcode]
         {
             get => _opcodeActions[(int)opcode];
             set

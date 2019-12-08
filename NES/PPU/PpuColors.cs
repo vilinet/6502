@@ -1,8 +1,8 @@
 ﻿namespace NES
 {
-    internal static class PpuColors
+    public static class PpuColors
     {
-        internal static uint[] Colors = new uint[] {
+        public static uint[] Colors = new uint[] {
             0x666666,
             0x002A88,
             0x1412A7,
