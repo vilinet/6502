@@ -4,6 +4,7 @@ using SFML.Graphics;
 using SFML.Window;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace console
 {
@@ -13,7 +14,7 @@ namespace console
 
         private enum DebugView
         {
-             Nametable, PpuMemory, Oam, Cpu
+            Nametable, PpuMemory, Oam, Cpu
         }
 
         private readonly Nes _nes;
@@ -22,14 +23,14 @@ namespace console
         private List<string> cpuOperations = new List<string>();
         private string cpuState = "";
         private string[] stackState = new string[20];
-        private string[] memory = new string[32];
+        private string memory = null;
+        private StringBuilder sb = new StringBuilder(5000);
 
         public DebugWindow(string title, uint width, uint height, Nes nes) : base(title, width, height)
         {
             _nes = nes;
             _ppu = _nes.PPU;
         }
-        
 
 
         private void BeforeOperationExecuted(emulator6502.Cpu sender, emulator6502.OpcodeEventArgs e)
@@ -37,9 +38,7 @@ namespace console
             lock (this)
             {
                 if (cpuOperations.Count >= 20)
-                {
                     cpuOperations.RemoveAt(0);
-                }
 
                 cpuOperations.Add(e.Full.ToString(e.Full.Parameter));
 
@@ -50,14 +49,18 @@ namespace console
                 for (int i = 0; i < 20; i++)
                     stackState[i] = $"{255 - i:X2}: {_nes.Bus.Read((ushort)(0x0100 + (255 - i))):X2}";
 
+                sb.Clear();
+
                 for (int i = 0; i < 32; i++)
                 {
-                    memory[i] = $"{i * 8:X2}: ";
+                    sb.Append($"{((byte)(i * 8)):X2}: ");
                     for (int j = 0; j < 8; j++)
                     {
-                        memory[i] += _nes.Bus.Read((ushort)(i * 32 + j)).ToString("X2") + " ";
-                        if (j == 3) memory[i] += " | ";
+                        sb.Append(_nes.Bus.Read((ushort)(i * 32 + j)).ToString("X2") + " ");
+                        if (j == 3) sb.Append(" | ");
                     }
+                    sb.Append("\n");
+                    memory = sb.ToString();
                 }
             }
         }
@@ -66,14 +69,7 @@ namespace console
         public override void Render()
         {
             HandleEvents();
-            for (int i = 0; i < Pixels.Length/4; i++)
-            {
-
-                Pixels[i*4] = 0;
-                Pixels[i*4+1] = 0;
-                Pixels[i*4+2] = 0;
-                Pixels[i*4+3] = 255;
-            }
+            ClearPixels();
 
             switch (_actualView)
             {
@@ -85,11 +81,11 @@ namespace console
                     break;
                 case DebugView.Oam:
                     DebugOam(false);
-                        break;
+                    break;
                 default:
                     break;
             }
-            
+
             _texture.Update(Pixels);
             Draw(_sprite);
 
@@ -119,11 +115,11 @@ namespace console
                 list = cpuOperations.ToArray();
             }
 
-            for (int i = 0; i < memory.Length; i++) DrawText(0, i * 10, memory[i], 22);
-            for (int i=0; i<list.Length; i++) DrawText(260, i * 10, list[i], 22, color: i==19? Color.Yellow:default);
+            DrawText(0, 0, memory, 22);
+            for (int i = 0; i < list.Length; i++) DrawText(260, i * 10, list[i], 22, color: i == list.Length - 1 ? Color.Yellow : default);
             DrawText(260, 220, cpuState, 22);
 
-            for(int i=0; i<stackState.Length;i++) DrawText(550, i * 10, stackState[i], 22);
+            for (int i = 0; i < stackState.Length; i++) DrawText(550, i * 10, stackState[i], 22);
 
 
         }
@@ -149,7 +145,7 @@ namespace console
             for (int n = 0; n < 4; n++)
             {
                 var startPos = Ppu.NAMETABLE + n * Ppu.NAMETABLE_FULL_LENGTH;
-                int offsetX =  (n % 2 == 0 ? 0 : 30 * 8);
+                int offsetX = (n % 2 == 0 ? 0 : 30 * 8);
                 int offsetY = n < 2 ? 0 : 240;
 
                 for (int j = 0; j < 30; j++)
@@ -176,9 +172,9 @@ namespace console
                     x = 0;
                     y += 8;
                 }
-                
-                if(!text) DrawSprite(GetSprite(0, i, bank1Palette, bg: true), x, y);
-                else DrawText(x, y, i.ToString("X2"),10);
+
+                if (!text) DrawSprite(GetSprite(0, i, bank1Palette, bg: true), x, y);
+                else DrawText(x, y, i.ToString("X2"), 10);
                 x += 8;
             }
 
@@ -193,7 +189,7 @@ namespace console
                     y += 8;
                 }
                 if (!text) DrawSprite(GetSprite(1, i, bank2Palette, bg: true), x, y);
-                else DrawText(x, y, i.ToString("X2"),10);
+                else DrawText(x, y, i.ToString("X2"), 10);
                 x += 8;
             }
 
@@ -203,7 +199,7 @@ namespace console
                 for (int i = 0; i < 4; i++)
                 {
                     if (!text) DrawRectangle(i * 8 + 150, t * 8, 8, 8, PpuColors.Colors[_ppu.Palettes[ind] % 64]);
-                    
+
                     ind++;
                 }
             }
@@ -216,11 +212,11 @@ namespace console
                 for (int j = 0; j < 32; j++)
                 {
                     var oam = _ppu.Oam[i * 32 + j];
-                    if (!text) DrawSprite(GetSprite(oam), i * 200, j * 10+1);
+                    if (!text) DrawSprite(GetSprite(oam), i * 200, j * 10 + 1);
                     else DrawText(i * 200 + 8, j * 10, $"{oam.Id:D3}: X:{oam.X:X2} Y:{oam.X:X2} A: {oam.Attributes}");
                 }
             }
-            
+
         }
 
         private void DrawSprite(NesSprite sprite, int x, int y)
@@ -308,10 +304,10 @@ namespace console
                         default: break;
                     }
 
-                    if(c>= Keyboard.Key.Numpad1 && c<= Keyboard.Key.Numpad5)
+                    if (c >= Keyboard.Key.Numpad1 && c <= Keyboard.Key.Numpad5)
                     {
                         _actualView = (DebugView)(c - Keyboard.Key.Numpad1);
-                        if(_actualView == DebugView.Cpu)
+                        if (_actualView == DebugView.Cpu)
                         {
                             _nes.Cpu.BeforeOperationExecuted -= BeforeOperationExecuted;
                             _nes.Cpu.BeforeOperationExecuted += BeforeOperationExecuted;
@@ -324,7 +320,7 @@ namespace console
                     }
 
 
-                    if(c >= Keyboard.Key.Num0 &&  c <= Keyboard.Key.Num3)
+                    if (c >= Keyboard.Key.Num0 && c <= Keyboard.Key.Num3)
                     {
                         bank1Palette = c - Keyboard.Key.Num0;
                     }

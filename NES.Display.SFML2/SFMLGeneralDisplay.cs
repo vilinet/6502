@@ -74,11 +74,7 @@ namespace NES.Display.SFML
             }
         }
 
-
-        protected virtual void OnPostDraw()
-        {
-            
-        }
+        protected virtual void OnPostDraw() { }
 
         protected virtual void HandleEvents()
         {
@@ -100,11 +96,6 @@ namespace NES.Display.SFML
             }
         }
 
-        protected void ClearPixels()
-        {
-            for (int i = 0; i < InternalWidth * InternalHeight; i++) Pixels[i] = 0;
-        }
-
         protected virtual void OnKeyRelease(Keyboard.Key key) { }
 
         public void DrawText(int x, int y, string text, int fontSize = 20, Color color = default)
@@ -121,6 +112,17 @@ namespace NES.Display.SFML
                 _text.CharacterSize = (uint)fontSize;
                 _text.Position = new Vector2f(2 * x, 2 * y);
                 Draw(_text);
+            }
+        }
+
+        protected void ClearPixels()
+        {
+            for (int i = 0; i < Pixels.Length / 4; i++)
+            {
+                Pixels[i * 4] = 0;
+                Pixels[i * 4 + 1] = 0;
+                Pixels[i * 4 + 2] = 0;
+                Pixels[i * 4 + 3] = 255;
             }
         }
 
