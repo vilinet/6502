@@ -6,7 +6,7 @@
         static void Main(string[] args)
         {
             //new Terminal().Run(); 
-            var app = new MySfmlNesApp(500,500, 700,700, "first.nes");
+            var app = new MySfmlNesApp(300,300, 550,500, "smb.nes");
             var debugWindow = new DebugWindow("Debug", 1200, 1000, app.Nes);
 
             while (app.IsOpen && debugWindow.IsOpen)
