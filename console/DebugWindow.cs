@@ -8,7 +8,7 @@ using System.Text;
 
 namespace console
 {
-    public class DebugWindow : SFMLGeneralDisplay
+    public class DebugWindow : SfmlGeneralDisplay
     {
         private DebugView _actualView;
 

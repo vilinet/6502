@@ -5,7 +5,7 @@ using SFML.Window;
 
 namespace NES.Display.SFML
 {
-    public class SFMLGeneralDisplay : RenderWindow, IDisplay
+    public class SfmlGeneralDisplay : RenderWindow, IDisplay
     {
         protected readonly byte[] Pixels;
         protected readonly Texture _texture;
@@ -18,7 +18,7 @@ namespace NES.Display.SFML
 
         private bool _frameFinished = true;
 
-        public SFMLGeneralDisplay(string title, uint width, uint height) : base(new VideoMode(width, height), title)
+        public SfmlGeneralDisplay(string title, uint width, uint height) : base(new VideoMode(width, height), title)
         {
             InternalWidth = width;
             InternalHeight = height;
@@ -56,7 +56,7 @@ namespace NES.Display.SFML
             SetPixel(xx + 1, yy + 1, color);
         }
 
-        public void FrameDone()
+        public void FrameFinished()
         {
             _frameFinished = true;
         }

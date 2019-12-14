@@ -1,5 +1,5 @@
 ﻿using emulator6502;
-using NESInterfaces;
+using NES.Interfaces;
 
 namespace NES
 {
@@ -13,6 +13,8 @@ namespace NES
         private byte _readCount = 8;
         private byte _stateCache = 0;
 
+        private byte _latch = 0;
+
         public ControllerDevice(ushort port, IController controller)
         {
             From = port;
@@ -22,22 +24,24 @@ namespace NES
         
         public void Write(ushort address, byte value)
         {
-     
+            if (_controller == null) return;
+
+            if(address == 0x4016)
+            {
+                if(_latch == 1 && value == 0)
+                {
+                    _stateCache = _controller.GetState();
+                }
+
+                _latch = value;
+            }
         }
         
         public byte Read(ushort address)
         {
-            if (_controller == null) return 0;
-            if (_readCount == 8)
-            {
-                _readCount = 0;
-                _stateCache = _controller.GetState();
-            }
-
-            byte v = (byte)(_stateCache & 0b00000001);
-            _readCount++;
+            var bit = _stateCache & 1;
             _stateCache =  (byte)(_stateCache >> 1);
-            return v;
+            return (byte)bit;
         }
     }
 }

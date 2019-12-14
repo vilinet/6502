@@ -3,11 +3,11 @@ using SFML.Window;
 
 namespace NES.Display.SFML
 {
-    public class SFMLNesDisplay : SFMLGeneralDisplay
+    public class SFMLNesDisplay : SfmlGeneralDisplay
     {
         protected Controller Controller1 { get; }
 
-        public SFMLNesDisplay(string title, uint width, uint height) : base(title, width, height)
+        protected SFMLNesDisplay(string title, uint width, uint height) : base(title, width, height)
         {
             Controller1 = new Controller();
         }
@@ -39,28 +39,28 @@ namespace NES.Display.SFML
                     switch (c)
                     {
                         case Keyboard.Key.Left:
-                            Controller1.SetButtonState(NESInterfaces.ControllerButton.Left, pressed.Value);
+                            Controller1.SetButtonState(ControllerButton.Left, pressed.Value);
                             break;
                         case Keyboard.Key.Right:
-                            Controller1.SetButtonState(NESInterfaces.ControllerButton.Right, pressed.Value);
+                            Controller1.SetButtonState(ControllerButton.Right, pressed.Value);
                             break;
                         case Keyboard.Key.Up:
-                            Controller1.SetButtonState(NESInterfaces.ControllerButton.Up, pressed.Value);
+                            Controller1.SetButtonState(ControllerButton.Up, pressed.Value);
                             break;
                         case Keyboard.Key.Down:
-                            Controller1.SetButtonState(NESInterfaces.ControllerButton.Down, pressed.Value);
+                            Controller1.SetButtonState(ControllerButton.Down, pressed.Value);
                             break;
                         case Keyboard.Key.Backspace:
-                            Controller1.SetButtonState(NESInterfaces.ControllerButton.Select, pressed.Value);
+                            Controller1.SetButtonState(ControllerButton.Select, pressed.Value);
                             break;
                         case Keyboard.Key.Enter:
-                            Controller1.SetButtonState(NESInterfaces.ControllerButton.Start, pressed.Value);
+                            Controller1.SetButtonState(ControllerButton.Start, pressed.Value);
                             break;
                         case Keyboard.Key.A:
-                            Controller1.SetButtonState(NESInterfaces.ControllerButton.A, pressed.Value);
+                            Controller1.SetButtonState(ControllerButton.A, pressed.Value);
                             break;
                         case Keyboard.Key.S:
-                            Controller1.SetButtonState(NESInterfaces.ControllerButton.B, pressed.Value);
+                            Controller1.SetButtonState(ControllerButton.B, pressed.Value);
                             break;
                         case Keyboard.Key.Escape:
                             Close();

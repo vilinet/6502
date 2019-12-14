@@ -11,7 +11,7 @@ namespace emulator6502
         public new Action<ushort, BindingMode> this[OpcodeEnum opcode]
         {
             get => _opcodeActions[(int)opcode];
-            set
+            private set
             {
                 Add(opcode, value);
                 _opcodeActions[(int) opcode] = value;

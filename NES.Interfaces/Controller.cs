@@ -1,6 +1,4 @@
-﻿using NESInterfaces;
-
-namespace NES.Interfaces
+﻿namespace NES.Interfaces
 {
     public class Controller : IController
     {

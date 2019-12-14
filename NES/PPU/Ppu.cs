@@ -395,7 +395,7 @@ namespace NES
                 {
                     _scanline = -1;
                     FrameFinished = true;
-                    _display.FrameDone();
+                    _display.FrameFinished();
                 }
             }
         }

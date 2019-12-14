@@ -4,7 +4,6 @@ using System.IO;
 using System.Threading;
 using emulator6502;
 using NES.Interfaces;
-using NESInterfaces;
 
 namespace NES
 {
