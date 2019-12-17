@@ -14,16 +14,11 @@ namespace NES
 
         public Mirroring Mirroring => Info.Mirroring;
 
-        private byte[] _prgRom = new byte[0xFFFF];
-        private byte[] _chrRom = new byte[0xFFFF];
+        private byte[] _prgRom;
+        private byte[] _chrRom;
         private byte[] _trainerData = new byte[512];
 
         private IMapper _mapper;
-
-        public Cartridge()
-        {
-            _mapper = GetMapper(0);
-        }
 
         private RomInfo LoadHeader(BinaryReader reader)
         {
@@ -82,11 +77,13 @@ namespace NES
 
         public void Write(ushort address, byte value)
         {
+            if (_prgRom == null) return;
             _prgRom[_mapper.Read(address)] = value;
         }
 
         public byte Read(ushort address)
         {
+            if (_prgRom == null) return 0;
             return _prgRom[_mapper.Read(address)];
         }
     }

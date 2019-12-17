@@ -98,7 +98,7 @@ namespace NES.Display.SFML
 
         protected virtual void OnKeyRelease(Keyboard.Key key) { }
 
-        public void DrawText(int x, int y, string text, int fontSize = 20, Color color = default)
+        public void DrawText(int x, int y, string text, int fontSize = 24, Color color = default)
         {
             if (_text != null)
             {

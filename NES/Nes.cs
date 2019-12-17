@@ -9,17 +9,13 @@ namespace NES
 {
     public class Nes
     {
-        private readonly Ppu _ppu;
-        private readonly Bus _bus;
         private readonly Cartridge _cartridge;
-        private readonly CpuRam _cpuRam;
-        private readonly IDisplay _display;
         private string _filePath;
         private int _internalClock;
         private bool _stop;
 
-        public Ppu PPU => _ppu;
-        public Bus Bus => _bus;
+        public Ppu PPU { get; }
+        public Bus Bus { get; }
 
         public NesState State { get; private set; }
 
@@ -28,13 +24,12 @@ namespace NES
         private float _speed = 1;
         public float Speed
         {
-            get
-            {
-                return _speed;
-            }
+            get => _speed;
+            
             set
             {
                 _speed = value;
+
                 if (value <= 0)
                 {
                     _speed = 0;
@@ -50,21 +45,19 @@ namespace NES
 
         public Nes(IDisplay display, IController controller1, IController controller2 = null)
         {
-            _display = display;
-            _cpuRam = new CpuRam();
             _cartridge = new Cartridge();
-            _bus = new Bus();
-            Cpu = new Cpu(_bus);
-            _ppu = new Ppu(Cpu, _cartridge, _display);
+            Bus = new Bus();
+            Cpu = new Cpu(Bus);
+            PPU = new Ppu(Cpu, _cartridge, display);
 
-            _bus.AddMap(_cpuRam);
-            _bus.AddMap(_ppu);
-            _bus.AddMap(new ControllerDevice(0x4016, controller1));
-            _bus.AddMap(new ControllerDevice(0x4017, controller2));
-            _bus.AddMap(new OamDma(_ppu, _bus));
-            _bus.AddMap(_cartridge);
+            Bus.AddMap(new CpuRam());
+            Bus.AddMap(PPU);
+            Bus.AddMap(new ControllerDevice(0x4016, controller1));
+            Bus.AddMap(new ControllerDevice(0x4017, controller2));
+            Bus.AddMap(new OamDma(PPU, Bus));
+            Bus.AddMap(_cartridge);
 
-            _ppu.PowerOn();
+            PPU.PowerOn();
             Cpu.Reset();
         }
 
@@ -73,9 +66,10 @@ namespace NES
             var colorIndex = 0;
             using (var reader = new BinaryReader(new FileStream(file, FileMode.Open)))
             {
-                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                while (reader.BaseStream.Position < reader.BaseStream.Length && colorIndex<63)
                 {
                     PpuColors.Colors[colorIndex++] = (uint)((reader.ReadByte() << 16) + (reader.ReadByte() << 8) + reader.ReadByte());
+                    colorIndex++;
                 }
             }
         }
@@ -91,7 +85,7 @@ namespace NES
             State = NesState.Stopped;
             Thread.Sleep(50);
             _cartridge.LoadRom(_filePath);
-            _ppu.Reset();
+            PPU.Reset();
             Cpu.Reset();
             State = NesState.Running;
         }
@@ -135,19 +129,19 @@ namespace NES
 
                 if (State == NesState.Running)
                 {
-                    while (!_ppu.FrameFinished)
+                    while (!PPU.FrameFinished)
                     {
                         Tick();
                     }
                 }
 
-                _ppu.FrameFinished = false;
+                PPU.FrameFinished = false;
             }
         }
 
         public void Tick()
         {
-            _ppu.Clock();
+            PPU.Clock();
 
             if (_internalClock % 3 == 0)
             {

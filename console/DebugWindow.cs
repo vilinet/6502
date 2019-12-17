@@ -211,13 +211,13 @@ namespace console
                 {
                     var oam = _ppu.Oam[i * 32 + j];
                     if (!text) DrawSprite(GetSprite(oam), i * 200, j * 10 + 1);
-                    else DrawText(i * 200 + 8, j * 10, $"{oam.Id:D3}: X:{oam.X:X2} Y:{oam.X:X2} A: {oam.Attributes}");
+                    else DrawText(i * 200 + 8, j * 10, $"{oam.Id:X2}: X:{oam.X:X2} Y:{oam.X:X2} A: {oam.Attributes}");
                 }
             }
 
         }
 
-        private void DrawSprite(NesSprite sprite, int x, int y)
+        private void DrawSprite(NesSprite sprite, int x, int y, int scale = 2)
         {
             int index = 0;
             for (int j = y; j < y + 8; j++)
