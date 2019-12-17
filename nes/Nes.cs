@@ -68,7 +68,7 @@ namespace NES
             Cpu.Reset();
         }
 
-        public void LoadPalette(string file)
+        public void LoadColors(string file)
         {
             var colorIndex = 0;
             using (var reader = new BinaryReader(new FileStream(file, FileMode.Open)))
