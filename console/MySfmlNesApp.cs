@@ -10,8 +10,6 @@ namespace console
     public class MySfmlNesApp : SFMLNesDisplay
     {
         public Nes Nes { get; }
-        private bool _debug;
-        private bool _debugText = false;
 
         public MySfmlNesApp(int x, int y, uint w, uint h, string rom) : base("NES", w, h)
         {
@@ -56,27 +54,12 @@ namespace console
                     Nes.Speed = Math.Max(Nes.Speed - 0.25f, 0);
                     break;
 
-                case Keyboard.Key.D:
-                    _debug = !_debug;
-                    ClearPixels();
-                    break;
-
-                case Keyboard.Key.T:
-                    _debugText = !_debugText;
-                    ClearPixels();
-                    break;
-
                 case Keyboard.Key.PageDown:
                     Nes.Tick();
                     Nes.Tick();
                     Nes.Tick();
                     break;
             }
-        }
-
-        void Cpu_BeforeOperationExecuted(Cpu cpu, OpcodeEventArgs e)
-        {
-            Console.WriteLine(e.Full.ToString(e.Full.Parameter));
         }
     }
 }
