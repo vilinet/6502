@@ -7,8 +7,7 @@ namespace emulator6502
 
     public class Cpu
     {
-        private readonly Opcodes _opcodes;
-        private readonly CpuOperations _operations;
+        private readonly OpCodes _opcodes;
         internal readonly IAddressable Bus;
 
         public CpuState State { get; private set; }
@@ -25,19 +24,18 @@ namespace emulator6502
 
         public Cpu(IAddressable bus)
         {
-            _opcodes = new Opcodes();
-            _operations = new CpuOperations(this);
+            _opcodes = new OpCodes(this);
             Bus = bus;
         }
 
         public void Irq()
         {
-            _operations.Irq();
+            _opcodes.Irq();
         }
 
         public void Nmi()
         {
-            _operations.Nmi();
+            _opcodes.Nmi();
         }
 
         public void Reset()
@@ -94,14 +92,6 @@ namespace emulator6502
             return true;
         }
 
-        public ushort GetValue(FullOpcode fullOpcode)
-        {
-            if (fullOpcode.Opcode.Mode == BindingMode.Relative)
-                return _operations.GetAddress(fullOpcode.Parameter, fullOpcode.Opcode.Mode);
-            
-            return _operations.GetValue(fullOpcode.Parameter, fullOpcode.Opcode.Mode);
-        }
-
         public void Run()
         {
             while (State == CpuState.Running)
@@ -112,7 +102,7 @@ namespace emulator6502
             }
         }
 
-        public void Execute(OpcodeEnum opcodeEnum, BindingMode mode, ushort parameter = 0)
+        public void Execute(OpcodeEnum opcodeEnum, AddressingMode mode, ushort parameter = 0)
         {
             InnerExecute(_opcodes.Get(opcodeEnum, mode), parameter, 0, 0);
         }
@@ -142,7 +132,7 @@ namespace emulator6502
                 }
             }
 
-            _operations[opcode.Enum](param, opcode.Mode);
+            _opcodes.Execute(param, opcode);
             Cycles += opcode.Cycles;
 
             if (AfterOperationExecuted == null) return true;

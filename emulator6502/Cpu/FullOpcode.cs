@@ -39,7 +39,7 @@ namespace emulator6502
                 }
             }
             
-            if (enumsToWriteValue.Contains(Opcode.Enum) && Opcode.Mode!= BindingMode.Immediate)
+            if (enumsToWriteValue.Contains(Opcode.Enum) && Opcode.Mode!= AddressingMode.Immediate)
             {
                 valChange = "= " + outsideParameter.ToString("X2");
             }
@@ -52,7 +52,7 @@ namespace emulator6502
             {
                 return $".DB ${Parameter:X2}";
             }
-            if (Opcode.Mode == BindingMode.Implied)
+            if (Opcode.Mode == AddressingMode.Implied)
                 return Opcode.Enum.ToString();
 
 
@@ -66,37 +66,37 @@ namespace emulator6502
             
             switch (Opcode.Mode)
             {
-                case BindingMode.Immediate:
+                case AddressingMode.Immediate:
                     return op + $"#${Parameter:X2}";
                 
-                case BindingMode.ZeroPage:
+                case AddressingMode.ZeroPage:
                     return op + $"${Parameter:X2}";
                 
-                case BindingMode.ZeroPageX:
+                case AddressingMode.ZeroPageX:
                     return op + $"${Parameter:X2},X";
                 
-                case BindingMode.ZeroPageY:
+                case AddressingMode.ZeroPageY:
                     return op + $"${Parameter:X2},Y";
                 
-                case  BindingMode.Absolute:
+                case  AddressingMode.Absolute:
                     return op +$"${Parameter:X4}";
                 
-                case  BindingMode.AbsoluteX:
+                case  AddressingMode.AbsoluteX:
                     return op + $"${Parameter:X4},X";
                 
-                case  BindingMode.AbsoluteY:
+                case  AddressingMode.AbsoluteY:
                     return op + $"${Parameter:X4},Y";
 
-                case   BindingMode.IndexedIndirect:
+                case   AddressingMode.IndexedIndirect:
                     return $"{op} (${Parameter:X2},X)";
                 
-                case BindingMode.IndirectIndexed:
+                case AddressingMode.IndirectIndexed:
                     return $"{op} (${Parameter:X2}),Y";
                 
-                case BindingMode.Indirect:
+                case AddressingMode.Indirect:
                     return op + $"(${Parameter:X4})";
                 
-                case BindingMode.Relative:
+                case AddressingMode.Relative:
                     return op + $"${Parameter:X2}";
                 
                 default:

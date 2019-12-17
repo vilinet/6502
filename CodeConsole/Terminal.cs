@@ -9,13 +9,13 @@ namespace CodeTerminal
 {
     public class Terminal
     {
-        private readonly Opcodes _opcodes;
+        private readonly OpCodes _opcodes;
         private readonly Cpu _cpu;
         private readonly Bus _bus;
 
         public Terminal()
         {
-            _opcodes = new Opcodes();
+            _opcodes = new OpCodes(null);
             _bus = new Bus();
             _bus.AddMap(new Ram());
             _cpu = new Cpu(_bus);
@@ -103,40 +103,40 @@ namespace CodeTerminal
             if (Enum.TryParse(parts[0], true, out OpcodeEnum opcode))
             {
                 ushort parameter = 0;
-                BindingMode mode = BindingMode.Implied;
+                AddressingMode mode = AddressingMode.Implied;
                 if (parts.Length > 1)
                 {
-                    //All indirect bindings
+                    //All indirect modes
                     if (parts[1] == "(")
                     {
                         parameter = ParseNumber(parts[2], out mode);
 
                         if (parts.Length == 5)
                             mode = parts[3].ToUpper() == "X"
-                                ? BindingMode.IndexedIndirect
-                                : BindingMode.IndirectIndexed;
+                                ? AddressingMode.IndexedIndirect
+                                : AddressingMode.IndirectIndexed;
                         else if (parts.Length == 4)
-                            mode = BindingMode.Indirect;
+                            mode = AddressingMode.Indirect;
                     }
                     else
                     {
                         parameter = ParseNumber(parts[1], out mode);
                         bool? X = null;
-                        if (mode == BindingMode.Implied)
+                        if (mode == AddressingMode.Implied)
                         {
                             if (parts.Length == 3) X = parts[2].ToUpper() == "X";
 
                             if (parameter > 255)
                             {
-                                if (!X.HasValue) mode = BindingMode.Absolute;
-                                else if (X == false) mode = BindingMode.AbsoluteY;
-                                else mode = BindingMode.AbsoluteX;
+                                if (!X.HasValue) mode = AddressingMode.Absolute;
+                                else if (X == false) mode = AddressingMode.AbsoluteY;
+                                else mode = AddressingMode.AbsoluteX;
                             }
                             else
                             {
-                                if (!X.HasValue) mode = BindingMode.ZeroPage;
-                                else if (X == false) mode = BindingMode.ZeroPageY;
-                                else mode = BindingMode.ZeroPageX;
+                                if (!X.HasValue) mode = AddressingMode.ZeroPage;
+                                else if (X == false) mode = AddressingMode.ZeroPageY;
+                                else mode = AddressingMode.ZeroPageX;
                             }
                         }
                     }
@@ -149,9 +149,9 @@ namespace CodeTerminal
             return null;
         }
 
-        private ushort ParseNumber(string value, out BindingMode mode)
+        private ushort ParseNumber(string value, out AddressingMode mode)
         {
-            mode = value.StartsWith("#") ? BindingMode.Immediate : BindingMode.Implied;
+            mode = value.StartsWith("#") ? AddressingMode.Immediate : AddressingMode.Implied;
             value = value.Replace("#", "");
             value = value.Replace("$", "");
             return (ushort) int.Parse(value, NumberStyles.HexNumber);

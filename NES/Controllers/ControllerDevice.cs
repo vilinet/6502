@@ -10,7 +10,6 @@ namespace NES
 
         private readonly IController _controller;
         
-        private byte _readCount = 8;
         private byte _stateCache = 0;
 
         private byte _latch = 0;
@@ -28,12 +27,12 @@ namespace NES
 
             if(address == 0x4016)
             {
-                if(_latch == 1 && value == 0)
+                if(_latch == 1 && value % 8  == 0)
                 {
                     _stateCache = _controller.GetState();
                 }
 
-                _latch = value;
+                _latch = (byte)(value%8);
             }
         }
         

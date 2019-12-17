@@ -1,4 +1,6 @@
-﻿namespace console
+﻿using CodeTerminal;
+
+namespace console
 {
 
     static class Program
@@ -6,7 +8,7 @@
         static void Main(string[] args)
         {
             //new Terminal().Run(); 
-            var app = new MySfmlNesApp(300,300, 550,500, "smb.nes");
+            var app = new MySfmlNesApp(300,300, 550,500, "nestest.nes");
             var debugWindow = new DebugWindow("Debug", 1200, 1000, app.Nes);
 
             while (app.IsOpen && debugWindow.IsOpen)

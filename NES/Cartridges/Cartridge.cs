@@ -32,7 +32,6 @@ namespace NES
             
             info.ProgramBanks = bytes[4];
             info.CharBanks = bytes[5];
-            
             info.Mirroring = (bytes[6] & 1) == 1 ? Mirroring.Vertical:Mirroring.Horizontal;
             info.HasBattery = (bytes[6] & 2) == 2;
             info.HasTrainerData = (bytes[6] & 3) == 4;

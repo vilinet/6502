@@ -6,7 +6,7 @@ namespace emulator6502
 {
     public class Decompiler
     {
-        private readonly Opcodes _opcodes = new Opcodes();
+        private readonly OpCodes _opcodes = new OpCodes(null);
         
         public List<FullOpcode> Decompile(Stream stream, int start = 0)
         {
@@ -24,7 +24,7 @@ namespace emulator6502
 
                 if (opcode == null)
                 {
-                    opcode = new Opcode(code, OpcodeEnum.DB, BindingMode.Implied, 0);
+                    opcode = new Opcode(code, OpcodeEnum.DB, AddressingMode.Implied, 0);
                     parameter = code;
                 }
                 else opcode = _opcodes[code];

@@ -1,6 +1,6 @@
 ﻿namespace emulator6502
 {
-    public enum BindingMode
+    public enum AddressingMode
     {
         Implied,
         Immediate,

@@ -1,18 +1,10 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel;
 
 namespace emulator6502
 {
-    public class Bus : IAddressable
+    public partial class Bus : IAddressable
     {
-        private class DevNullAddressable : IAddressable
-        {
-            public ushort From { get; }
-            public ushort To { get; }
-            public void Write(ushort address, byte value) { }
 
-            public byte Read(ushort address)  {  return 0;  }
-        }
         public ushort From { get; } = 0;
         public ushort To { get; } = 0xFFFF;
         

@@ -3,7 +3,6 @@ using NES.Display.SFML;
 using SFML.Graphics;
 using SFML.Window;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace console
@@ -44,7 +43,7 @@ namespace console
 
                 cpuState = $"C: {R(_nes.Cpu.Status.Carry)} N:{R(_nes.Cpu.Status.Negative)} O:{R(_nes.Cpu.Status.Overflow)} Z:{R(_nes.Cpu.Status.Zero)}\n";
                 cpuState += $"A: {_nes.Cpu.A:X2} X:{_nes.Cpu.X:X2} Y:{_nes.Cpu.Y:X2}\n";
-                cpuState += $"SP: {_nes.Cpu.SP} PC: {_nes.Cpu.PC.ToString("X4")}";
+                cpuState += $"SP: {_nes.Cpu.SP:X2} PC: {_nes.Cpu.PC:X4}";
 
                 for (int i = 0; i < 20; i++)
                     stackState[i] = $"{255 - i:X2}: {_nes.Bus.Read((ushort)(0x0100 + (255 - i))):X2}";
@@ -120,9 +119,8 @@ namespace console
             DrawText(260, 220, cpuState, 22);
 
             for (int i = 0; i < stackState.Length; i++) DrawText(550, i * 10, stackState[i], 22);
-
-
         }
+
         private string R(bool val)
         {
             return val ? "1" : "0";

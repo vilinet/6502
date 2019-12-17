@@ -64,7 +64,7 @@ namespace NES.Display.SFML
         public virtual void Render()
         {
             HandleEvents();
-            if (_frameFinished)
+            //if (_frameFinished)
             {
                 _frameFinished = false;
                 _texture.Update(Pixels);
