@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using emulator6502;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace CodeTerminal
 {
@@ -103,7 +102,7 @@ namespace CodeTerminal
             if (Enum.TryParse(parts[0], true, out OpcodeEnum opcode))
             {
                 ushort parameter = 0;
-                AddressingMode mode = AddressingMode.Implied;
+                var mode = AddressingMode.Implied;
                 if (parts.Length > 1)
                 {
                     //All indirect modes
