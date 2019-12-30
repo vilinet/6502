@@ -126,13 +126,9 @@ namespace NES
                 ActualFps = (int)Math.Round(1000.0 / stopwatch.ElapsedMilliseconds);
                 stopwatch.Restart();
                 if (State != NesState.Running) continue;
-
-                if (State == NesState.Running)
-                {
-                    while (!PPU.FrameFinished)
-                    {
-                        Tick();
-                    }
+                while (!PPU.FrameFinished) 
+                { 
+                    Tick(); 
                 }
 
                 PPU.FrameFinished = false;

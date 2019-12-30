@@ -4,7 +4,7 @@ namespace console
 {
     static class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             //new Terminal().Run();  
             var app = new MySfmlNesApp(300, 300, 515, 480, "smb.nes");

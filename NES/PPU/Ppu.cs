@@ -14,7 +14,7 @@ namespace NES
         public const ushort PALETTE_SPRITE = 0x3F10;
         public const ushort NAMETABLE = 0X2000;
         public const ushort NAMETABLE_FULL_LENGTH = 0X400;
-        public const ushort NAMETABLE_ONLY_LENGTH = 0X3C0;
+        public const ushort NAMETABLE_TILES_LENGTH = 0X3C0;
         public const ushort NAMETABLE_ATTRIBUTES = 0X23C0;
 
         private readonly IDisplay _display;
@@ -284,8 +284,10 @@ namespace NES
             }
             else if (_scanline == 241 && _cycle == 1)
             {
+                //First pixel of the nonvisible scanline
                 _PPURegisters.PPUSTATUS.VerticalBlank = true;
-                if (_PPURegisters.PPUCTRL.NmiEnabled) _cpu.Nmi();
+                if (_PPURegisters.PPUCTRL.NmiEnabled)
+                    _cpu.Nmi();
             }
 
             if (_cycle > 0 && _scanline >= 0 && _cycle - 1 < 256 && _scanline < 240)

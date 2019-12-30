@@ -18,12 +18,12 @@ namespace console
 
         private readonly Nes _nes;
         private readonly Ppu _ppu;
-
-        private List<string> cpuOperations = new List<string>();
-        private string cpuState = "";
-        private string[] stackState = new string[20];
-        private string memory = null;
-        private StringBuilder sb = new StringBuilder(5000);
+        private readonly List<string> _cpuOperations = new List<string>();
+        private string _cpuState = "";
+        private readonly string[] _stackState = new string[20];
+        private string _memory;
+        private readonly StringBuilder _sb = new StringBuilder(5000);
+        private int _bank1Palette, _bank2Palette;
 
         public DebugWindow(string title, uint width, uint height, Nes nes) : base(title, width, height)
         {
@@ -31,35 +31,34 @@ namespace console
             _ppu = _nes.PPU;
         }
 
-
         private void BeforeOperationExecuted(emulator6502.Cpu sender, emulator6502.OpcodeEventArgs e)
         {
             lock (this)
             {
-                if (cpuOperations.Count >= 20)
-                    cpuOperations.RemoveAt(0);
+                if (_cpuOperations.Count >= 20)
+                    _cpuOperations.RemoveAt(0);
 
-                cpuOperations.Add(e.Full.ToString(e.Full.Parameter));
+                _cpuOperations.Add(e.Full.ToString(e.Full.Parameter));
 
-                cpuState = $"C: {R(_nes.Cpu.Status.Carry)} N:{R(_nes.Cpu.Status.Negative)} O:{R(_nes.Cpu.Status.Overflow)} Z:{R(_nes.Cpu.Status.Zero)}\n";
-                cpuState += $"A: {_nes.Cpu.A:X2} X:{_nes.Cpu.X:X2} Y:{_nes.Cpu.Y:X2}\n";
-                cpuState += $"SP: {_nes.Cpu.SP:X2} PC: {_nes.Cpu.PC:X4}";
+                _cpuState = $"C: {R(_nes.Cpu.Status.Carry)} N:{R(_nes.Cpu.Status.Negative)} O:{R(_nes.Cpu.Status.Overflow)} Z:{R(_nes.Cpu.Status.Zero)}\n";
+                _cpuState += $"A: {_nes.Cpu.A:X2} X:{_nes.Cpu.X:X2} Y:{_nes.Cpu.Y:X2}\n";
+                _cpuState += $"SP: {_nes.Cpu.SP:X2} PC: {_nes.Cpu.PC:X4}";
 
                 for (int i = 0; i < 20; i++)
-                    stackState[i] = $"{255 - i:X2}: {_nes.Bus.Read((ushort)(0x0100 + (255 - i))):X2}";
+                    _stackState[i] = $"{255 - i:X2}: {_nes.Bus.Read((ushort)(0x0100 + (255 - i))):X2}";
 
-                sb.Clear();
+                _sb.Clear();
 
                 for (int i = 0; i < 32; i++)
                 {
-                    sb.Append($"{((byte)(i * 8)):X2}: ");
+                    _sb.Append($"{((byte)(i * 8)):X2}: ");
                     for (int j = 0; j < 8; j++)
                     {
-                        sb.Append(_nes.Bus.Read((ushort)(i * 32 + j)).ToString("X2") + " ");
-                        if (j == 3) sb.Append(" | ");
+                        _sb.Append(_nes.Bus.Read((ushort)(i * 32 + j)).ToString("X2") + " ");
+                        if (j == 3) _sb.Append(" | ");
                     }
-                    sb.Append("\n");
-                    memory = sb.ToString();
+                    _sb.Append("\n");
+                    _memory = _sb.ToString();
                 }
             }
         }
@@ -73,15 +72,13 @@ namespace console
             switch (_actualView)
             {
                 case DebugView.Nametable:
-                    DebugNametable();
+                    DebugNametable(false);
                     break;
                 case DebugView.PpuMemory:
                     DebugPpuMemory(false);
                     break;
                 case DebugView.Oam:
                     DebugOam(false);
-                    break;
-                default:
                     break;
             }
 
@@ -93,13 +90,14 @@ namespace console
                 case DebugView.PpuMemory:
                     DebugPpuMemory(true);
                     break;
+                case DebugView.Nametable:
+                    DebugNametable(true);
+                    break;
                 case DebugView.Oam:
                     DebugOam(true);
                     break;
                 case DebugView.Cpu:
                     DebugCpu();
-                    break;
-                default:
                     break;
             }
 
@@ -111,14 +109,14 @@ namespace console
             string[] list;
             lock (this)
             {
-                list = cpuOperations.ToArray();
+                list = _cpuOperations.ToArray();
             }
 
-            DrawText(0, 0, memory, 22);
+            DrawText(0, 0, _memory, 22);
             for (int i = 0; i < list.Length; i++) DrawText(260, i * 10, list[i], 22, color: i == list.Length - 1 ? Color.Yellow : default);
-            DrawText(260, 220, cpuState, 22);
+            DrawText(260, 220, _cpuState, 22);
 
-            for (int i = 0; i < stackState.Length; i++) DrawText(550, i * 10, stackState[i], 22);
+            for (int i = 0; i < _stackState.Length; i++) DrawText(550, i * 10, _stackState[i], 22);
         }
 
         private string R(bool val)
@@ -138,28 +136,69 @@ namespace console
             }
         }
 
-        public void DebugNametable()
+        public void DebugNametable(bool text)
         {
-            for (int n = 0; n < 4; n++)
+            for (var n = 0; n < 4; n++)
             {
                 var startPos = Ppu.NAMETABLE + n * Ppu.NAMETABLE_FULL_LENGTH;
-                int offsetX = (n % 2 == 0 ? 0 : 30 * 8);
-                int offsetY = n < 2 ? 0 : 240;
+                var offsetX = (n % 2 == 0 ? 0 : 30 * 8);
+                var offsetY = n < 2 ? 0 : 240;
+                var startAttributes = startPos + Ppu.NAMETABLE_TILES_LENGTH;
 
-                for (int j = 0; j < 30; j++)
+                for (var j = 0; j < 30; j++)
                 {
-                    for (int i = 0; i < 32; i++)
+                    for (var i = 0; i < 32; i++)
                     {
                         var ind = _ppu.ReadPpu(startPos++);
-                        DrawSprite(GetSprite(1, ind), i * 8 + offsetX, j * 8 + offsetY);
-                        DrawText(i * 8 + offsetX, j * 8 + offsetY, ind.ToString("X2"));
+                        if(!text)  DrawSprite(GetSprite(1, ind), i * 8 + offsetX, j * 8 + offsetY);
+                        else DrawText(i * 8 + offsetX, j * 8 + offsetY, ind.ToString("X2"), 12);
                     }
+                }
+          
+
+                for (var j = 0; j < 30/4; j++)
+                {
+                    for (var i = 0; i < 32/4; i++)
+                    {
+                        var attr = _ppu.ReadPpu(startAttributes++);
+                        if (text)
+                        {
+                            //DrawText(i * 32+16 + offsetX, j * 32+16 + offsetY, attr.ToString("X2"), 14, Color.Magenta);
+                        }
+                     
+                    }
+                }
+               
+            }
+            
+            if (!text)
+            {
+                for (var i = 0; i < 32; i++)
+                {
+                    DrawHorzontalLine(0, i*32, 1000);
+                    if(i<18)
+                    DrawVerticalLine(0, i*32, 1000);
                 }
             }
         }
-        int bank1Palette = 0, bank2Palette;
 
-        public void DebugPpuMemory(bool text)
+        private void DrawHorzontalLine(int x1, int y, int x2, uint color = 0xFFFFFF)
+        {
+            for (; x1 < x2; x1++)
+            {
+                DrawPixel(x1, y, color);
+            }
+        }
+        
+        private void DrawVerticalLine(int y1, int x, int y2, uint color = 0xFFFFFF)
+        {
+            for (; y1 < y2; y1++)
+            {
+                DrawPixel(x, y1, color);
+            }
+        }
+
+        private void DebugPpuMemory(bool text)
         {
             int x = 0;
             int y = 0;
@@ -171,7 +210,7 @@ namespace console
                     y += 8;
                 }
 
-                if (!text) DrawSprite(GetSprite(0, i, bank1Palette, bg: true), x, y);
+                if (!text) DrawSprite(GetSprite(0, i, _bank1Palette, bg: true), x, y);
                 else DrawText(x, y, i.ToString("X2"), 10);
                 x += 8;
             }
@@ -186,7 +225,7 @@ namespace console
                     x = 0;
                     y += 8;
                 }
-                if (!text) DrawSprite(GetSprite(1, i, bank2Palette, bg: true), x, y);
+                if (!text) DrawSprite(GetSprite(1, i, _bank2Palette, bg: true), x, y);
                 else DrawText(x, y, i.ToString("X2"), 10);
                 x += 8;
             }
@@ -309,7 +348,7 @@ namespace console
                         {
                             _nes.Cpu.BeforeOperationExecuted -= BeforeOperationExecuted;
                             _nes.Cpu.BeforeOperationExecuted += BeforeOperationExecuted;
-                            cpuOperations.Clear();
+                            _cpuOperations.Clear();
                         }
                         else
                         {
@@ -320,11 +359,11 @@ namespace console
 
                     if (c >= Keyboard.Key.Num0 && c <= Keyboard.Key.Num3)
                     {
-                        bank1Palette = c - Keyboard.Key.Num0;
+                        _bank1Palette = c - Keyboard.Key.Num0;
                     }
                     else if (c >= Keyboard.Key.Num4 && c <= Keyboard.Key.Num8)
                     {
-                        bank2Palette = c - Keyboard.Key.Num4;
+                        _bank2Palette = c - Keyboard.Key.Num4;
                     }
                 }
             }
