@@ -9,15 +9,15 @@ namespace console
 {
     public class DebugWindow : SfmlGeneralDisplay
     {
-        private DebugView _actualView;
+        private DebugView _actualView = DebugView.None;
 
         private enum DebugView
         {
-            Nametable, PpuMemory, Oam, Cpu
+             Nametable, PpuMemory, Oam, Cpu, None
         }
 
         private readonly Nes _nes;
-        private readonly Ppu _ppu;
+        private readonly PPU _ppu;
         private readonly List<string> _cpuOperations = new List<string>();
         private string _cpuState = "";
         private readonly string[] _stackState = new string[20];
@@ -124,7 +124,6 @@ namespace console
             return val ? "1" : "0";
         }
 
-
         private void DrawRectangle(int x, int y, int width, int height, uint color)
         {
             for (int i = x; i < x + width; i++)
@@ -140,10 +139,10 @@ namespace console
         {
             for (var n = 0; n < 4; n++)
             {
-                var startPos = Ppu.NAMETABLE + n * Ppu.NAMETABLE_FULL_LENGTH;
+                var startPos = PPU.NAMETABLE + n * PPU.NAMETABLE_FULL_LENGTH;
                 var offsetX = (n % 2 == 0 ? 0 : 30 * 8);
                 var offsetY = n < 2 ? 0 : 240;
-                var startAttributes = startPos + Ppu.NAMETABLE_TILES_LENGTH;
+                var startAttributes = startPos + PPU.NAMETABLE_TILES_LENGTH;
 
                 for (var j = 0; j < 30; j++)
                 {
@@ -280,7 +279,7 @@ namespace console
             if (paletteIndex == -1) paletteIndex = 1;
             var sprite = new NesSprite();
 
-            var paletteBase = (!bg ? Ppu.PALETTE_SPRITE : Ppu.PALETTE) + paletteIndex * 4;
+            var paletteBase = (!bg ? PPU.PALETTE_SPRITE : PPU.PALETTE) + paletteIndex * 4;
 
             var addr = spriteIndex * 16 + bankIndex * 0x1000;
             var index = 0;

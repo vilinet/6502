@@ -16,9 +16,9 @@ namespace NES.Display.SFML
         protected uint InternalWidth { get; }
         protected uint InternalHeight { get; }
 
-        private bool _frameFinished = true;
+        protected bool FrameFinished { get; set; } = true;
 
-        public SfmlGeneralDisplay(string title, uint width, uint height) : base(new VideoMode(width, height), title)
+        public SfmlGeneralDisplay(string title, uint width, uint height, uint scale = 1) : base(new VideoMode(width, height), title)
         {
             InternalWidth = width;
             InternalHeight = height;
@@ -56,17 +56,17 @@ namespace NES.Display.SFML
             SetPixel(xx + 1, yy + 1, color);
         }
 
-        public void FrameFinished()
+        public void SetFrameFinished()
         {
-            _frameFinished = true;
+            FrameFinished = true;
         }
 
         public virtual void Render()
         {
             HandleEvents();
-            if (_frameFinished)
+            if (FrameFinished)
             {
-                _frameFinished = false;
+                FrameFinished = false;
                 _texture.Update(Pixels);
                 Draw(_sprite);
                 OnPostDraw();
@@ -96,7 +96,7 @@ namespace NES.Display.SFML
             }
         }
 
-        protected virtual void OnKeyRelease(Keyboard.Key key) { }
+        protected virtual void OnKeyRelease(Keyboard.Key key) {}
 
         public void DrawText(int x, int y, string text, int fontSize = 24, Color color = default)
         {

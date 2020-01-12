@@ -8,7 +8,8 @@ namespace emulator6502
     public class Cpu
     {
         private readonly OpCodes _opcodes;
-        internal readonly IAddressable Bus;
+
+        internal IAddressable Bus { get; private set; }
 
         public CpuState State { get; private set; }
         public StatusRegister Status { get; } = new StatusRegister();
@@ -19,6 +20,7 @@ namespace emulator6502
         public byte Y { get; internal set; }
 
         public ulong Cycles { get; internal set; }
+
         public event OpCodeEventHandler BeforeOperationExecuted;
         public event OpCodeEventHandler AfterOperationExecuted;
 
@@ -82,12 +84,12 @@ namespace emulator6502
 
             if (entry.Length == 2) parameter = ReadWord(PC);
             else if (entry.Length == 1) parameter = Bus.Read(PC);
+
             PC += entry.Length;
 
             if (!InnerExecute(entry, parameter, prevPC, cycles))
-            {
                 PC = prevPC;
-            }
+            
 
             return true;
         }

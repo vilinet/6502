@@ -1,10 +1,17 @@
 ﻿using System;
 using System.IO;
+using emulator6502;
 using NES.Mapper;
 
 namespace NES
 {
-    public class Cartridge : ICartridge
+    public enum Mirroring
+    {
+        Vertical, Horizontal, Both
+    }
+
+
+    public class Cartridge : IAddressable
     {
         public RomInfo Info { get; private set; }
 
@@ -27,7 +34,7 @@ namespace NES
             
             info.ProgramBanks = bytes[4];
             info.CharBanks = bytes[5];
-            info.Mirroring = (bytes[6] & 1) == 1 ? Mirroring.Vertical:Mirroring.Horizontal;
+            info.Mirroring = (bytes[6] & 1) == 1 ? Mirroring.Vertical : Mirroring.Horizontal;
             info.HasBattery = (bytes[6] & 2) == 2;
             info.HasTrainerData = (bytes[6] & 3) == 4;
             info.IgnoreMirroringControl = (bytes[6] & 4) == 8;
@@ -42,7 +49,7 @@ namespace NES
 
         private IMapper GetMapper(int mapperId)
         {
-            if(mapperId == 0) return new Mapper000(Info?.ProgramBanks??0);
+            if(mapperId == 0) return new Mapper000( Info?.ProgramBanks ?? 0);
             throw new Exception($"Mapper: {mapperId} is not supported!" );
         }
         
@@ -52,7 +59,8 @@ namespace NES
             {
                 Info = LoadHeader(reader);
                 
-                if(Info.HasTrainerData)  _trainerData = reader.ReadBytes(512);
+                if(Info.HasTrainerData) 
+                    _trainerData = reader.ReadBytes(512);
                 _prgRom = reader.ReadBytes(Info.ProgramBanks * 16 * 1024);
                 _chrRom = reader.ReadBytes(Info.CharBanks * 8 * 1024);
             }

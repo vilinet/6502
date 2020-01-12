@@ -15,7 +15,7 @@
         ///7 - Right
         /// </summary>
         /// <returns></returns>
-        byte GetState();
+        byte State { get; }
 
         void SetButtonState(ControllerButton button, bool pressed);
     }

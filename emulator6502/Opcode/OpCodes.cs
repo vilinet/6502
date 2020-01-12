@@ -5,8 +5,8 @@ namespace emulator6502
 {
     public class OpCodes
     {
-        private Opcode[] _opcodes = new Opcode[256];
-        private Action<ushort, AddressingMode>[] _opcodeActions = new Action<ushort, AddressingMode>[256];
+        private readonly Opcode[] _opcodes = new Opcode[256];
+        private readonly Action<ushort, AddressingMode>[] _opcodeActions = new Action<ushort, AddressingMode>[256];
         private readonly Cpu _cpu;
 
 

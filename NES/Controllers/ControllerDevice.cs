@@ -29,7 +29,7 @@ namespace NES
             {
                 if(_latch == 1 && value % 8  == 0)
                 {
-                    _stateCache = _controller.GetState();
+                    _stateCache = _controller.State;
                 }
 
                 _latch = (byte)(value%8);

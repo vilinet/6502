@@ -7,7 +7,7 @@
         public PpuStatusRegister PPUSTATUS { get; set; } = new PpuStatusRegister();
 
         /// <summary>
-        /// Relative address in Object memory
+        /// Relative address in oam memory
         /// </summary>
         public byte OAMADDR { get; set; }
 

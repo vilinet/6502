@@ -5,9 +5,9 @@ namespace NES
     internal class OamDma : IAddressable
     {
         private IAddressable _bus;
-        private Ppu _ppu;
+        private PPU _ppu;
 
-        public OamDma(Ppu ppu, IAddressable bus)
+        public OamDma(PPU ppu, IAddressable bus)
         {
             _ppu = ppu;
             _bus = bus;

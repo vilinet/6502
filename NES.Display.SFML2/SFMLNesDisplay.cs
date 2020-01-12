@@ -7,9 +7,22 @@ namespace NES.Display.SFML
     {
         protected Controller Controller1 { get; }
 
-        protected SFMLNesDisplay(string title, uint width, uint height) : base(title, width, height)
+        protected SFMLNesDisplay(string title, uint width, uint height, uint scale = 1) : base(title, width, height, scale)
         {
             Controller1 = new Controller();
+        }
+
+        public override void Render()
+        {
+           // if (FrameFinished)
+            {
+                HandleEvents();
+                _texture.Update(Pixels);
+                Draw(_sprite);
+                OnPostDraw();
+                Display();
+                FrameFinished = false;
+            }
         }
 
         protected override void HandleEvents()

@@ -4,11 +4,8 @@ using NES.Registers;
 
 namespace NES
 {
-    public class Ppu : IAddressable
+    public class PPU : IAddressable
     {
-        public ushort From { get; } = 0x2000;
-        public ushort To { get; } = 0x2007;
-        public bool FrameFinished { get; internal set; }
 
         public const ushort PALETTE = 0x3F00;
         public const ushort PALETTE_SPRITE = 0x3F10;
@@ -17,73 +14,76 @@ namespace NES
         public const ushort NAMETABLE_TILES_LENGTH = 0X3C0;
         public const ushort NAMETABLE_ATTRIBUTES = 0X23C0;
 
+        public ushort From { get; } = 0x2000;
+        public ushort To { get; } = 0x2007;
+        public bool FrameFinished { get; internal set; }
+        public Oam[] Oam { get; private set; } = new Oam[64];
+        public PpuRegisters PPURegisters { get; private set; } = new PpuRegisters();
+        public byte[] Palettes { get; set; } = new byte[32];
+
+
         private readonly IDisplay _display;
         private readonly Cpu _cpu;
-        private readonly ICartridge _cartridge;
+        private readonly Cartridge _cartridge;
+        private readonly Nes _nes;
 
-        private readonly PpuRegisters _PPURegisters = new PpuRegisters();
-        public PpuRegisters PPURegisters => _PPURegisters;
 
-        private readonly byte[] _palettes = new byte[32];
-        public byte[] Palettes => _palettes;
         private readonly byte[,] _patterns = new byte[2, 0x2000];
         private readonly byte[,] _nameTables = new byte[2, NAMETABLE_FULL_LENGTH];
-
-        private readonly Oam[] _oam = new Oam[64];
-        public Oam[] Oam => _oam;
-
         private readonly LoopyRegister _vram = new LoopyRegister();
         private readonly LoopyRegister _tram = new LoopyRegister();
         private readonly Oam[] _spriteScanline = new Oam[8];
         private readonly byte[] _spriteShifterPatternLow = new byte[8];
         private readonly byte[] _spriteShifterPatternHigh = new byte[8];
 
-        private bool _addressFull;
+        private bool _addressLatch;
         private int _cycle { get; set; }
         private short _scanline;
         private byte _ppuReadCache;
         private byte _fineX;
         private byte _bgNextTileId;
-        private byte _bgNextTileAttribute;
-        private byte _bgNextTileLow;
-        private byte _bgNextTileHigh;
-        private ushort _bgShifterPatternLow;
-        private ushort _bgShifterPatternHigh;
-        private ushort _bgShifterAttributeLow;
-        private ushort _bgShifterAttributeHigh;
+        private byte _bgNextTileAttr;
+        private byte _bgNextTileLo;
+        private byte _bgNextTileHi;
+        private ushort _bgShifterPatternLo;
+        private ushort _bgShifterPatternHi;
+        private ushort _bgShifterAttributeLo;
+        private ushort _bgShifterAttributeHi;
         private int _spriteCount;
         private bool _spriteZeroHitPossible;
         private bool _spriteZeroBeingRendered;
 
-        public Ppu(Cpu cpu, ICartridge cartridge, IDisplay display )
+        public PPU(Cpu cpu, Cartridge cartridge, IDisplay display, Nes nes)
         {
+            _nes = nes;
             _display = display;
             _cpu = cpu;
             _cartridge = cartridge;
-            for (int i = 0; i < 64; i++) _oam[i] = new Oam();
+            for (int i = 0; i < 64; i++)
+                Oam[i] = new Oam();
         }
 
         public void WriteOAM(byte data)
         {
-            int index = _PPURegisters.OAMADDR >> 2;
-            int prop = _PPURegisters.OAMADDR - (index << 2);
+            int index = PPURegisters.OAMADDR >> 2;
+            int prop = PPURegisters.OAMADDR - (index << 2);
             switch (prop)
             {
                 case 0:
-                    _oam[index].Y = data;
+                    Oam[index].Y = data;
                     break;
                 case 1:
-                    _oam[index].Id = data;
+                    Oam[index].Id = data;
                     break;
                 case 2:
-                    _oam[index].Attributes = data;
+                    Oam[index].Attributes = data;
                     break;
                 case 3:
-                    _oam[index].X = data;
+                    Oam[index].X = data;
                     break;
             }
 
-            _PPURegisters.OAMADDR++;
+            PPURegisters.OAMADDR++;
         }
 
         public void Clock()
@@ -96,14 +96,14 @@ namespace NES
                 }
                 else if (_scanline == -1 && _cycle == 1)
                 {
-                    _PPURegisters.PPUSTATUS.VerticalBlank = false;
+                    PPURegisters.PPUSTATUS.VerticalBlank = false;
                     // Clear Shifters
                     for (int i = 0; i < 8; i++)
                     {
                         _spriteShifterPatternLow[i] = 0;
                         _spriteShifterPatternHigh[i] = 0;
-                        _PPURegisters.PPUSTATUS.SpriteOverflow = false;
-                        _PPURegisters.PPUSTATUS.SpriteHit = false;
+                        PPURegisters.PPUSTATUS.SpriteOverflow = false;
+                        PPURegisters.PPUSTATUS.SpriteHit = false;
                     }
                 }
                 else if ((_cycle >= 2 && _cycle < 258) || (_cycle >= 321 && _cycle < 338))
@@ -117,22 +117,22 @@ namespace NES
                             _bgNextTileId = ReadPpu(NAMETABLE | (_vram.Value & 0x0FFF));
                             break;
                         case 2:
-                            _bgNextTileAttribute = ReadPpu(NAMETABLE_ATTRIBUTES | (_vram.NametableY << 11)
+                            _bgNextTileAttr = ReadPpu(NAMETABLE_ATTRIBUTES | (_vram.NametableY << 11)
                                                  | (_vram.NametableX << 10)
                                                  | ((_vram.CoarseY >> 2) << 3)
                                                  | (_vram.CoarseX >> 2));
 
-                            if ((_vram.CoarseY & 0x02) != 0) _bgNextTileAttribute >>= 4;
-                            if ((_vram.CoarseX & 0x02) != 0) _bgNextTileAttribute >>= 2;
+                            if ((_vram.CoarseY & 0x02) != 0) _bgNextTileAttr >>= 4;
+                            if ((_vram.CoarseX & 0x02) != 0) _bgNextTileAttr >>= 2;
 
-                            _bgNextTileAttribute &= 0x03;
+                            _bgNextTileAttr &= 0x03;
                             break;
                         case 4:
-                            _bgNextTileLow = ReadPpu(((_PPURegisters.PPUCTRL.PatternBackground ? 1 : 0) << 12)
+                            _bgNextTileLo = ReadPpu(((PPURegisters.PPUCTRL.PatternBackground ? 1 : 0) << 12)
                                            + (_bgNextTileId << 4) + _vram.FineY);
                             break;
                         case 6:
-                            _bgNextTileHigh = ReadPpu(((_PPURegisters.PPUCTRL.PatternBackground ? 1 : 0) << 12)
+                            _bgNextTileHi = ReadPpu(((PPURegisters.PPUCTRL.PatternBackground ? 1 : 0) << 12)
                                                     + (_bgNextTileId << 4) + (_vram.FineY) + 8);
                             break;
                         case 7:
@@ -177,9 +177,9 @@ namespace NES
 
                     while (index < 64 && _spriteCount < 9)
                     {
-                        int diff = _scanline - _oam[index].Y;
+                        int diff = _scanline - Oam[index].Y;
 
-                        if (diff >= 0 && diff < (_PPURegisters.PPUCTRL.SpriteHeight ? 16 : 8))
+                        if (diff >= 0 && diff < (PPURegisters.PPUCTRL.SpriteHeight ? 16 : 8))
                         {
                             if (_spriteCount < 8)
                             {
@@ -188,36 +188,36 @@ namespace NES
                                     _spriteZeroHitPossible = true;
                                 }
 
-                                _spriteScanline[_spriteCount] = _oam[index];
+                                _spriteScanline[_spriteCount] = Oam[index];
                                 _spriteCount++;
                             }
                         }
 
                         index++;
                     }
-                    _PPURegisters.PPUSTATUS.SpriteOverflow = (_spriteCount > 8);
+                    PPURegisters.PPUSTATUS.SpriteOverflow = (_spriteCount > 8);
                 }
                 if (_cycle == 340)
                 {
                     for (byte i = 0; i < _spriteCount; i++)
                     {
-                        byte sprite_pattern_bits_lo, sprite_pattern_bits_hi;
-                        ushort sprite_pattern_addr_lo, sprite_pattern_addr_hi;
+                        byte spritePatternBitsLo, spritePatternBitsHi;
+                        ushort spritePatternAddrLo, spritePatternAddrHi;
 
-                        if (!_PPURegisters.PPUCTRL.SpriteHeight)
+                        if (!PPURegisters.PPUCTRL.SpriteHeight)
                         {
                             if ((_spriteScanline[i].Attributes & 0x80) == 0)
                             {
-                                sprite_pattern_addr_lo = (ushort)(
-                                    ((_PPURegisters.PPUCTRL.PatternSprite ? 1 : 0) << 12)
+                                spritePatternAddrLo = (ushort)(
+                                    ((PPURegisters.PPUCTRL.PatternSprite ? 1 : 0) << 12)
                                     | (_spriteScanline[i].Id << 4)
                                     | (_scanline - _spriteScanline[i].Y));
 
                             }
                             else
                             {
-                                sprite_pattern_addr_lo = (ushort)(
-                                    ((_PPURegisters.PPUCTRL.PatternSprite ? 1 : 0) << 12)
+                                spritePatternAddrLo = (ushort)(
+                                    ((PPURegisters.PPUCTRL.PatternSprite ? 1 : 0) << 12)
                                     | (_spriteScanline[i].Id << 4)
                                     | (7 - (_scanline - _spriteScanline[i].Y)));
                             }
@@ -229,14 +229,14 @@ namespace NES
                             {
                                 if (_scanline - _spriteScanline[i].Y < 8)
                                 {
-                                    sprite_pattern_addr_lo = (ushort)(
+                                    spritePatternAddrLo = (ushort)(
                                         ((_spriteScanline[i].Id & 0x01) << 12)
                                         | ((_spriteScanline[i].Id & 0xFE) << 4)
                                         | ((_scanline - _spriteScanline[i].Y) & 0x07));
                                 }
                                 else
                                 {
-                                    sprite_pattern_addr_lo = (ushort)(
+                                    spritePatternAddrLo = (ushort)(
                                         ((_spriteScanline[i].Id & 0x01) << 12)
                                         | (((_spriteScanline[i].Id & 0xFE) + 1) << 4)
                                         | ((_scanline - _spriteScanline[i].Y) & 0x07));
@@ -246,34 +246,33 @@ namespace NES
                             {
                                 if (_scanline - _spriteScanline[i].Y < 8)
                                 {
-                                    sprite_pattern_addr_lo = (ushort)(
-                                        ((_spriteScanline[i].Id & 0x01) << 12)
-                                        | (((_spriteScanline[i].Id & 0xFE) + 1) << 4)
-                                        | (7 - (_scanline - _spriteScanline[i].Y) & 0x07));
+                                    spritePatternAddrLo = (ushort)(
+                                                           ((_spriteScanline[i].Id & 0x01) << 12)
+                                                        | (((_spriteScanline[i].Id & 0xFE) + 1) << 4)
+                                                        | (7 - (_scanline - _spriteScanline[i].Y) & 0x07));
                                 }
                                 else
                                 {
-                                    sprite_pattern_addr_lo =
-                                        (ushort)(((_spriteScanline[i].Id & 0x01) << 12)
-                                        | ((_spriteScanline[i].Id & 0xFE) << 4)
-                                        | (7 - (_scanline - _spriteScanline[i].Y) & 0x07));
+                                    spritePatternAddrLo = (ushort)(((_spriteScanline[i].Id & 0x01) << 12)
+                                                                  | ((_spriteScanline[i].Id & 0xFE) << 4)
+                                                                  | (7 - (_scanline - _spriteScanline[i].Y) & 0x07));
                                 }
                             }
                         }
 
-                        sprite_pattern_addr_hi = (ushort)(sprite_pattern_addr_lo + 8);
+                        spritePatternAddrHi = (ushort)(spritePatternAddrLo + 8);
 
-                        sprite_pattern_bits_lo = ReadPpu(sprite_pattern_addr_lo);
-                        sprite_pattern_bits_hi = ReadPpu(sprite_pattern_addr_hi);
+                        spritePatternBitsLo = ReadPpu(spritePatternAddrLo);
+                        spritePatternBitsHi = ReadPpu(spritePatternAddrHi);
 
                         if ((_spriteScanline[i].Attributes & 0x40) > 0)
                         {
-                            sprite_pattern_bits_lo = FlipByte(sprite_pattern_bits_lo);
-                            sprite_pattern_bits_hi = FlipByte(sprite_pattern_bits_hi);
+                            spritePatternBitsLo = FlipByte(spritePatternBitsLo);
+                            spritePatternBitsHi = FlipByte(spritePatternBitsHi);
                         }
 
-                        _spriteShifterPatternLow[i] = sprite_pattern_bits_lo;
-                        _spriteShifterPatternHigh[i] = sprite_pattern_bits_hi;
+                        _spriteShifterPatternLow[i] = spritePatternBitsLo;
+                        _spriteShifterPatternHigh[i] = spritePatternBitsHi;
                     }
                 }
 
@@ -285,8 +284,8 @@ namespace NES
             else if (_scanline == 241 && _cycle == 1)
             {
                 //First pixel of the nonvisible scanline
-                _PPURegisters.PPUSTATUS.VerticalBlank = true;
-                if (_PPURegisters.PPUCTRL.NmiEnabled)
+                PPURegisters.PPUSTATUS.VerticalBlank = true;
+                if (PPURegisters.PPUCTRL.NmiEnabled)
                     _cpu.Nmi();
             }
 
@@ -296,17 +295,17 @@ namespace NES
                 byte bg_pixel = 0x00;
                 byte bg_palette = 0x00;
 
-                if (_PPURegisters.PPUMASK.BackgroundEnable)
+                if (PPURegisters.PPUMASK.BackgroundEnable)
                 {
                     var bit_mux = (ushort)(0x8000 >> _fineX);
 
-                    var p0_pixel = (_bgShifterPatternLow & bit_mux) != 0 ? 1 : 0;
-                    var p1_pixel = (_bgShifterPatternHigh & bit_mux) != 0 ? 1 : 0;
+                    var p0_pixel = (_bgShifterPatternLo & bit_mux) != 0 ? 1 : 0;
+                    var p1_pixel = (_bgShifterPatternHi & bit_mux) != 0 ? 1 : 0;
 
                     bg_pixel = (byte)((p1_pixel << 1) | p0_pixel);
 
-                    var bg_pal0 = (_bgShifterAttributeLow & bit_mux) != 0 ? 1 : 0;
-                    var bg_pal1 = (_bgShifterAttributeHigh & bit_mux) != 0 ? 1 : 0;
+                    var bg_pal0 = (_bgShifterAttributeLo & bit_mux) != 0 ? 1 : 0;
+                    var bg_pal1 = (_bgShifterAttributeHi & bit_mux) != 0 ? 1 : 0;
                     bg_palette = (byte)((bg_pal1 << 1) | bg_pal0);
                 }
 
@@ -315,7 +314,7 @@ namespace NES
                 byte fg_priority = 0x00;
 
 
-                if (_PPURegisters.PPUMASK.SpriteEnable)
+                if (PPURegisters.PPUMASK.SpriteEnable)
                 {
                     _spriteZeroBeingRendered = false;
 
@@ -371,21 +370,23 @@ namespace NES
 
                     if (_spriteZeroHitPossible && _spriteZeroBeingRendered)
                     {
-                        if (_PPURegisters.PPUMASK.SpriteEnable && _PPURegisters.PPUMASK.BackgroundEnable)
+                        if (PPURegisters.PPUMASK.SpriteEnable && PPURegisters.PPUMASK.BackgroundEnable)
                         {
-                            if (!(_PPURegisters.PPUMASK.BackgroundLeftColumnEnable || _PPURegisters.PPUMASK.SpriteLeftColumnEnable))
+                            if (!(PPURegisters.PPUMASK.BackgroundLeftColumnEnable || PPURegisters.PPUMASK.SpriteLeftColumnEnable))
                             {
-                                if (_cycle >= 9 && _cycle < 258) _PPURegisters.PPUSTATUS.SpriteHit = true;
+                                if (_cycle >= 9 && _cycle < 258) PPURegisters.PPUSTATUS.SpriteHit = true;
                             }
                             else
                             {
-                                if (_cycle >= 1 && _cycle < 258) _PPURegisters.PPUSTATUS.SpriteHit = true;
+                                if (_cycle >= 1 && _cycle < 258) PPURegisters.PPUSTATUS.SpriteHit = true;
                             }
                         }
                     }
                 }
 
                 _display.DrawPixel(_cycle - 1, _scanline, GetColorFromPalette(palette, pixel));
+                if( _nes.SuperSlow >0 && _cycle > 2 && _cycle <256)
+                    _display.DrawPixel((_cycle - 1 + 1)%256,_scanline, 0xFF00fF);
             }
 
             _cycle++;
@@ -397,7 +398,7 @@ namespace NES
                 {
                     _scanline = -1;
                     FrameFinished = true;
-                    _display.FrameFinished();
+                    _display.SetFrameFinished();
                 }
             }
         }
@@ -417,7 +418,7 @@ namespace NES
 
         private void TransferAddressX()
         {
-            if (_PPURegisters.PPUMASK.BackgroundEnable || _PPURegisters.PPUMASK.SpriteEnable)
+            if (PPURegisters.PPUMASK.BackgroundEnable || PPURegisters.PPUMASK.SpriteEnable)
             {
                 _vram.NametableX = _tram.NametableX;
                 _vram.CoarseX = _tram.CoarseX;
@@ -425,7 +426,7 @@ namespace NES
         }
         private void TransferAddressY()
         {
-            if (_PPURegisters.PPUMASK.BackgroundEnable || _PPURegisters.PPUMASK.SpriteEnable)
+            if (PPURegisters.PPUMASK.BackgroundEnable || PPURegisters.PPUMASK.SpriteEnable)
             {
                 _vram.NametableY = _tram.NametableY;
                 _vram.CoarseY = _tram.CoarseY;
@@ -435,7 +436,7 @@ namespace NES
 
         private void IncrementScrollX()
         {
-            if (_PPURegisters.PPUMASK.BackgroundEnable || _PPURegisters.PPUMASK.SpriteEnable)
+            if (PPURegisters.PPUMASK.BackgroundEnable || PPURegisters.PPUMASK.SpriteEnable)
             {
                 if (_vram.CoarseX == 31)
                 {
@@ -451,7 +452,7 @@ namespace NES
 
         void IncrementScrollY()
         {
-            if (_PPURegisters.PPUMASK.BackgroundEnable || _PPURegisters.PPUMASK.SpriteEnable)
+            if (PPURegisters.PPUMASK.BackgroundEnable || PPURegisters.PPUMASK.SpriteEnable)
             {
                 if (_vram.FineY < 7)
                 {
@@ -479,15 +480,15 @@ namespace NES
 
         void UpdateShifters()
         {
-            if (_PPURegisters.PPUMASK.BackgroundEnable)
+            if (PPURegisters.PPUMASK.BackgroundEnable)
             {
-                _bgShifterAttributeHigh <<= 1;
-                _bgShifterAttributeLow <<= 1;
+                _bgShifterAttributeHi <<= 1;
+                _bgShifterAttributeLo <<= 1;
 
-                _bgShifterPatternHigh <<= 1;
-                _bgShifterPatternLow <<= 1;
+                _bgShifterPatternHi <<= 1;
+                _bgShifterPatternLo <<= 1;
             }
-            if (_PPURegisters.PPUMASK.SpriteEnable && _cycle >= 1 && _cycle < 258)
+            if (PPURegisters.PPUMASK.SpriteEnable && _cycle >= 1 && _cycle < 258)
             {
                 for (int i = 0; i < _spriteCount; i++)
                 {
@@ -506,10 +507,10 @@ namespace NES
 
         private void LoadBgShifters()
         {
-            _bgShifterPatternLow = (ushort)((_bgShifterPatternLow & 0xFF00) | _bgNextTileLow);
-            _bgShifterPatternHigh = (ushort)((_bgShifterPatternHigh & 0xFF00) | _bgNextTileHigh);
-            _bgShifterAttributeLow = (ushort)((_bgShifterAttributeLow & 0xFF00) | (((_bgNextTileAttribute & 0b01) != 0) ? 0xFF : 0x00));
-            _bgShifterAttributeHigh = (ushort)((_bgShifterAttributeHigh & 0xFF00) | (((_bgNextTileAttribute & 0b10) != 0) ? 0xFF : 0x00));
+            _bgShifterPatternLo = (ushort)((_bgShifterPatternLo & 0xFF00) | _bgNextTileLo);
+            _bgShifterPatternHi = (ushort)((_bgShifterPatternHi & 0xFF00) | _bgNextTileHi);
+            _bgShifterAttributeLo = (ushort)((_bgShifterAttributeLo & 0xFF00) | (((_bgNextTileAttr & 0b01) != 0) ? 0xFF : 0x00));
+            _bgShifterAttributeHi = (ushort)((_bgShifterAttributeHi & 0xFF00) | (((_bgNextTileAttr & 0b10) != 0) ? 0xFF : 0x00));
         }
 
      
@@ -523,9 +524,9 @@ namespace NES
                 case 1:
                     return 0;
                 case 2:
-                    var value = (_PPURegisters.PPUSTATUS & 0xE0) | (_ppuReadCache & 0x1F);
-                    _PPURegisters.PPUSTATUS.VerticalBlank = true;
-                    _addressFull = false;
+                    var value = (PPURegisters.PPUSTATUS & 0xE0) | (_ppuReadCache & 0x1F);
+                    PPURegisters.PPUSTATUS.VerticalBlank = true;
+                    _addressLatch = false;
                     return (byte)value;
                 case 3:
                     return 0;
@@ -539,7 +540,7 @@ namespace NES
                     var data = _ppuReadCache;
                     _ppuReadCache = ReadPpu(_vram.Value);
                     if (_vram.Value >= PALETTE) data = _ppuReadCache;
-                    _vram.Value += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
+                    _vram.Value += (ushort)(PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
                     return data;
             }
 
@@ -553,52 +554,52 @@ namespace NES
             switch (result)
             {
                 case 0:
-                    _PPURegisters.PPUCTRL.Value = value;
-                    _tram.NametableX = (byte)(_PPURegisters.PPUCTRL.NametableX ? 1 : 0);
-                    _tram.NametableY = (byte)(_PPURegisters.PPUCTRL.NametableY ? 1 : 0);
+                    PPURegisters.PPUCTRL.Value = value;
+                    _tram.NametableX = (byte)(PPURegisters.PPUCTRL.NametableX ? 1 : 0);
+                    _tram.NametableY = (byte)(PPURegisters.PPUCTRL.NametableY ? 1 : 0);
                     break;
                 case 1:
-                    _PPURegisters.PPUMASK.Value = value;
+                    PPURegisters.PPUMASK.Value = value;
                     break;
                 case 2:
-                    _PPURegisters.PPUSTATUS.Value = value;
+                    PPURegisters.PPUSTATUS.Value = value;
                     break;
                 case 3:
                     break;
                 case 4:
                     break;
                 case 5:
-                    if (!_addressFull)
+                    if (!_addressLatch)
                     {
                         _fineX = (byte)(value & 7);
                         _tram.CoarseX = (byte)(value >> 3);
-                        _addressFull = true;
+                        _addressLatch = true;
                     }
                     else
                     {
                         _tram.FineY = (byte)(value & 7);
                         _tram.CoarseY = (byte)(value >> 3);
-                        _addressFull = false;
+                        _addressLatch = false;
                     }
                     break;
                 case 6:
-                    if (!_addressFull)
+                    if (!_addressLatch)
                     {
                         _tram.Value = (ushort)(((value & 0x3F) << 8) | (_tram.Value & 0x00FF));
-                        _addressFull = true;
+                        _addressLatch = true;
                     }
                     else
                     {
                         _tram.Value = (ushort)((_tram.Value & 0xFF00) | value);
 
                         _vram.Value = _tram.Value;
-                        _addressFull = false;
+                        _addressLatch = false;
                     }
 
                     break;
                 case 7:
                     WritePpu(_vram.Value, value);
-                    _vram.Value += (ushort)(_PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
+                    _vram.Value += (ushort)(PPURegisters.PPUCTRL.IncrementMode ? 32 : 1);
                     break;
             }
         }
@@ -646,7 +647,7 @@ namespace NES
                 if (address == 0x0014) address = 0x0004;
                 if (address == 0x0018) address = 0x0008;
                 if (address == 0x001C) address = 0x000C;
-                return (byte)(_palettes[address] & (_PPURegisters.PPUMASK.Grayscale ? 0x30 : 0x3F));
+                return (byte)(Palettes[address] & (PPURegisters.PPUMASK.Grayscale ? 0x30 : 0x3F));
             }
             return 0;
         }
@@ -657,7 +658,7 @@ namespace NES
 
             if (_cartridge.WritePpu(address, value))
             {
-
+                
             }
             else if (address <= 0x1FFF)
             {
@@ -696,36 +697,36 @@ namespace NES
                 if (address == 0x0014) address = 0x0004;
                 if (address == 0x0018) address = 0x0008;
                 if (address == 0x001C) address = 0x000C;
-                _palettes[address] = value;
+                Palettes[address] = value;
             }
         }
 
         public void Reset()
         {
-            _addressFull = false;
+            _addressLatch = false;
             _cycle = 0;
             _scanline = -1;
-            _bgNextTileId = _bgNextTileAttribute = _bgNextTileLow = _bgNextTileHigh = 0;
-            _PPURegisters.PPUCTRL.Value = 0;
-            _PPURegisters.PPUMASK.Value = (byte)(_PPURegisters.PPUMASK.Value | 0b1000000);
-            _PPURegisters.PPUSTATUS.Value &= 0b10111111;
-            _PPURegisters.OAMADDR = 0;
-            _PPURegisters.OAMDATA = 0;
-            _PPURegisters.PPUSCROLL = 0;
-            _PPURegisters.PPUADDR = 0;
+            _bgNextTileId = _bgNextTileAttr = _bgNextTileLo = _bgNextTileHi = 0;
+            PPURegisters.PPUCTRL.Value = 0;
+            PPURegisters.PPUMASK.Value = (byte)(PPURegisters.PPUMASK.Value | 0b1000000);
+            PPURegisters.PPUSTATUS.Value &= 0b10111111;
+            PPURegisters.OAMADDR = 0;
+            PPURegisters.OAMDATA = 0;
+            PPURegisters.PPUSCROLL = 0;
+            PPURegisters.PPUADDR = 0;
         }
         public void PowerOn()
         {
-            _addressFull = false;
+            _addressLatch = false;
             _cycle = 0;
             _scanline = -1;
-            _PPURegisters.PPUCTRL.Value = 0;
-            _PPURegisters.PPUMASK.Value = 0;
-            _PPURegisters.PPUSTATUS.Value &= 0b10111111;
-            _PPURegisters.OAMADDR = 0;
-            _PPURegisters.OAMDATA = 0;
-            _PPURegisters.PPUSCROLL = 0;
-            _PPURegisters.PPUADDR = 0;
+            PPURegisters.PPUCTRL.Value = 0;
+            PPURegisters.PPUMASK.Value = 0;
+            PPURegisters.PPUSTATUS.Value &= 0b10111111;
+            PPURegisters.OAMADDR = 0;
+            PPURegisters.OAMDATA = 0;
+            PPURegisters.PPUSCROLL = 0;
+            PPURegisters.PPUADDR = 0;
         }
     }
 

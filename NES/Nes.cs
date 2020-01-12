@@ -14,10 +14,13 @@ namespace NES
         private int _internalClock;
         private bool _stop;
 
-        public Ppu PPU { get; }
-        public Bus Bus { get; }
+        public int SuperSlow { get; set; }
 
+        public int ActualFps { get; private set; }
         public NesState State { get; private set; }
+
+        public PPU PPU { get; }
+        public Bus Bus { get; }
 
         public Cpu Cpu { get; }
 
@@ -41,14 +44,13 @@ namespace NES
                 }
             }
         }
-        public int ActualFps { get; private set; }
 
         public Nes(IDisplay display, IController controller1, IController controller2 = null)
         {
             _cartridge = new Cartridge();
             Bus = new Bus();
             Cpu = new Cpu(Bus);
-            PPU = new Ppu(Cpu, _cartridge, display);
+            PPU = new PPU(Cpu, _cartridge, display, this);
 
             Bus.AddMap(new CpuRam());
             Bus.AddMap(PPU);
@@ -125,15 +127,32 @@ namespace NES
                 if (!(stopwatch.ElapsedMilliseconds >= frameTime)) continue;
                 ActualFps = (int)Math.Round(1000.0 / stopwatch.ElapsedMilliseconds);
                 stopwatch.Restart();
-                if (State != NesState.Running) continue;
 
-                if (State == NesState.Running)
+                if (State != NesState.Running)
+                    continue;
+
+                if (SuperSlow > 0)
                 {
+                    var timer = new Stopwatch();
+                    timer.Start();
                     while (!PPU.FrameFinished)
                     {
-                        Tick();
+                        if (State != NesState.Running )
+                            continue;
+
+                        if ( SuperSlow == 0 ||timer.ElapsedTicks > SuperSlow)
+                        {
+                            Tick();
+                            timer.Restart();
+                        }
                     }
                 }
+                else
+                {
+                    while (!PPU.FrameFinished) Tick();
+
+                }
+                    
 
                 PPU.FrameFinished = false;
             }
@@ -156,7 +175,6 @@ namespace NES
             var thread = new Thread(Run) {Priority = ThreadPriority.Highest, IsBackground = true};
             thread.Start();
         }
-
     }
 
     public enum NesState
