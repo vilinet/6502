@@ -86,7 +86,11 @@ namespace console
                         Nes.SuperSlow = 140000;
                         _superSlow = "Ultra Slow";
                     }
-                    else Nes.SuperSlow = 0;
+                    else
+                    {
+                        Nes.SuperSlow = 0;
+                        _superSlow = string.Empty;
+                    }
                     break;
             }
         }
